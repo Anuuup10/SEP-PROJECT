@@ -5,18 +5,20 @@ import { MainLayout } from './layouts/MainLayout';
 import { Home } from './pages/Home';
 import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
+import SplashPage from './pages/SplashPage';
 
 export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <MainLayout>
+      <SplashPage />
+        {/* <MainLayout>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/scan" element={<Scan />} />
             <Route path="/dashboard" element={<Dashboard />} />
           </Routes>
-        </MainLayout>
+        </MainLayout> */}
       </BrowserRouter>
     </AuthProvider>
   );
