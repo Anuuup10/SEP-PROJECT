@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { scanFoodApi, getHistoryApi } from '../services/api';
 
 export const useNutrition = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const scanFood = async (imageFile) => {
+  const scanFood = useCallback(async (imageFile) => {
     setLoading(true);
     setError(null);
     try {
@@ -19,9 +19,9 @@ export const useNutrition = () => {
       setLoading(false);
       throw err;
     }
-  };
+  }, []);
 
-  const getHistory = async () => {
+  const getHistory = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getHistoryApi();
@@ -32,7 +32,7 @@ export const useNutrition = () => {
       setLoading(false);
       throw err;
     }
-  };
+  }, []);
 
   return { scanFood, getHistory, loading, error };
 };
