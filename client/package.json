@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mobile": "vite --host --https",
+    "tunnel": "lt --port 5173",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -16,7 +18,9 @@
     "react-router-dom": "^7.1.5"
   },
   "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "localtunnel": "^2.0.2",
     "vite": "^6.1.0"
   }
 }

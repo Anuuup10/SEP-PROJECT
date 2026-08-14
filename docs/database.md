@@ -1,36 +1,72 @@
-# Database Schemas (MongoDB / Mongoose)
+# Database
 
-## 1. User Collection (`users`)
+## Database
 
-```typescript
-interface IUser {
-  _id: ObjectId;
-  name: string;
-  email: string; // Unique
-  password: string; // Hashed with bcrypt
-  dailyCalorieGoal: number; // Default: 2000
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
+MongoDB with Mongoose.
 
-## 2. NutritionLog Collection (`nutritionlogs`)
+## Main Collections
 
-```typescript
-interface INutritionLog {
-  _id: ObjectId;
-  user: ObjectId; // Reference to IUser
-  foodName: string;
-  calories: number;
-  macros: {
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  imageUrl?: string;
-  healthScore: number; // Scale 1 - 100
-  insights?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
+### Users
+
+Stores user account and profile information.
+
+Example fields:
+
+- _id
+- name
+- email
+- passwordHash
+- profile
+- createdAt
+- updatedAt
+
+### Meals
+
+Stores analyzed and saved meals.
+
+Example fields:
+
+- _id
+- userId
+- mealName
+- imageUrl
+- foods
+- totals
+- createdAt
+- updatedAt
+
+## Food Item
+
+A meal can contain multiple food items.
+
+Example:
+
+Food Item
+
+- name
+- quantity
+- unit
+- calories
+- protein
+- carbohydrates
+- fat
+- fiber
+- sugar
+- sodium
+- confidence
+
+## Meal Relationship
+
+User
+  ↓
+Meals
+  ↓
+Food Items
+
+## Important Notes
+
+Nutrition values should be treated as estimates.
+
+The database structure may change as new features are implemented.
+
+Any major schema changes should be documented before implementation.
