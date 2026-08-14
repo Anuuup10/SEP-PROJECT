@@ -7,6 +7,7 @@ import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
 import { Goals } from './pages/Goals';
 import SplashPage from './pages/SplashPage';
+import Setting from './pages/Setting';
 import Progress from './pages/Progress';
 import FoodAnalysisResult from './pages/FoodAnalysisResult';
 import { sampleResult } from "./pages/FoodAnalysisResult.example";
@@ -18,6 +19,21 @@ export function App() {
   const [selectedItem, setSelectedItem] = useState(null);
 
   return (
+    <>
+      <Setting/>    
+    </>
+    // <AuthProvider>
+    //   <BrowserRouter>
+    //   <SplashPage />
+    //     {/* <MainLayout>
+    //       <Routes>
+    //         <Route path="/" element={<Home />} />
+    //         <Route path="/scan" element={<Scan />} />
+    //         <Route path="/dashboard" element={<Dashboard />} />
+    //       </Routes>
+    //     </MainLayout> */}
+    //   </BrowserRouter>
+    // </AuthProvider>
     <AuthProvider>
       <BrowserRouter>
       {/* <SplashPage /> */}
