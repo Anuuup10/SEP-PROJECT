@@ -151,7 +151,7 @@ export const Home = () => {
 
         <nav className="dashboard-nav" aria-label="Main navigation">
           <Link className="active" to="/"><HomeIcon size={18} /><span>Home</span></Link>
-          <Link to="/dashboard"><LayoutDashboard size={18} /><span>Progress</span></Link>
+          <Link to="/goals"><LayoutDashboard size={18} /><span>Progress</span></Link>
           <Link className="scan-nav" to="/scan"><span><ScanLine size={24} /><b aria-hidden="true">✦</b></span><small>Scan</small></Link>
           <Link to="/dashboard"><History size={18} /><span>History</span></Link>
           <Link to="/profile"><CircleUserRound size={19} /><span>Profile</span></Link>
