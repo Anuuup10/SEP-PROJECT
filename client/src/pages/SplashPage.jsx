@@ -3,11 +3,13 @@ import khanaLensLogo from "../assets/images/KhanaLens.jpg";
 import momoImage from "../assets/images/Momo.jpg";
 import healthyFoodOne from "../assets/images/HealthyFood-1.jpg";
 import healthyFoodTwo from "../assets/images/HealthyFood-2.jpg";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 
 const foodImages = [
-  { src: momoImage, alt: "Momo bowl" },
+  { src: healthyFoodTwo, alt: "Colorful vegetable protein bowl" },
   { src: healthyFoodOne, alt: "Healthy food bowl" },
-  { src: healthyFoodTwo, alt: "Vegetable protein bowl" },
+  { src: momoImage, alt: "Momo bowl" },
 ];
 
 function SplashPage() {
@@ -22,94 +24,37 @@ function SplashPage() {
   }, []);
 
   return (
-    <div className="app-viewport">
-      <div className="mobile-card">
+    <div className="app-viewport splash-viewport">
+      <main className="mobile-card splash-card">
+        <div className="splash-leaf splash-leaf-top" aria-hidden="true" />
+        <div className="splash-leaf splash-leaf-side" aria-hidden="true" />
+        <div className="splash-dot-grid splash-dot-grid-left" aria-hidden="true" />
+        <div className="splash-dot-grid splash-dot-grid-right" aria-hidden="true" />
 
-        {/* Background Decorative Plant Leaves */}
-        <svg
-          className="bg-leaf-top"
-          viewBox="0 0 100 100"
-          fill="#3b8770"
-        >
-          <path d="M50 0 C70 30 90 40 100 100 C40 90 30 70 0 50 C30 40 40 20 50 0 Z" />
-        </svg>
-
-        <svg
-          className="bg-leaf-bottom"
-          viewBox="0 0 100 100"
-          fill="#3b8770"
-        >
-          <path d="M0 100 C30 70 40 30 100 0 C70 40 50 70 0 100 Z" />
-        </svg>
-
-        {/* Header / Logo Section */}
-        <div className="content-header">
-
-          <div className="logo-badge">
-            <img
-              src={khanaLensLogo}
-              alt="KhanaLens Logo"
-            />
+        <section className="content-header splash-header">
+          <div className="logo-badge splash-logo">
+            <img src={khanaLensLogo} alt="KhanaLens logo" />
           </div>
+          <h1 className="app-title">Khana<span>Lens</span></h1>
+          <h2 className="tagline">Scan. Analyze. Eat Smarter.</h2>
+          <p className="description">AI-powered nutrition analysis<br />for your everyday meals.</p>
+        </section>
 
-          <h1 className="app-title">
-            Khana<span>Lens</span>
-          </h1>
-
-          <h2 className="tagline">
-            Scan. Analyze. Eat Smarter.
-          </h2>
-
-          <p className="description">
-            AI-powered nutrition analysis for your everyday meals.
-          </p>
-
-        </div>
-
-        {/* Center Media Section */}
-        <div className="media-section">
-
-          <div className="food-image-wrapper">
-            {foodImages.map((image, index) => (
-              <img
-                key={image.src}
-                src={image.src}
-                alt={image.alt}
-                className={`food-slide ${
-                  activeIndex === index ? "active" : ""
-                }`}
-              />
-            ))}
+        <section className="media-section splash-media">
+          <div className="food-image-wrapper splash-food-image">
+            {foodImages.map((image, index) => <img key={image.src} src={image.src} alt={image.alt} className={`food-slide ${activeIndex === index ? "active" : ""}`} />)}
           </div>
-
-          {/* Pagination Dots */}
-          <div className="pagination">
-            {foodImages.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setActiveIndex(index)}
-                className={`dot ${
-                  activeIndex === index ? "active" : ""
-                }`}
-                aria-label={`Slide ${index + 1}`}
-              />
-            ))}
+          <div className="pagination splash-pagination">
+            {foodImages.map((_, index) => <button key={index} onClick={() => setActiveIndex(index)} className={`dot ${activeIndex === index ? "active" : ""}`} aria-label={`Slide ${index + 1}`} />)}
           </div>
+        </section>
 
+        <div className="button-group splash-actions">
+          <Link to="/login" className="btn btn-primary splash-primary">Get Started <ArrowRight size={27} /></Link>
+          <Link to="/login" className="btn btn-secondary splash-secondary">Log In</Link>
+          <p className="splash-register-prompt">Don’t have an account? <Link to="/register">Sign Up</Link></p>
         </div>
-
-        {/* Buttons */}
-        <div className="button-group">
-          <button className="btn btn-primary">
-            Get Started
-          </button>
-
-          <button className="btn btn-secondary">
-            Log In
-          </button>
-        </div>
-
-      </div>
+      </main>
     </div>
   );
 }

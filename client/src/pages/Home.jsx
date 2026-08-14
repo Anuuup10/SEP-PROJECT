@@ -84,13 +84,13 @@ export const Home = () => {
     <div className="dashboard-viewport">
       <main className="dashboard-page">
         <div className="dashboard-brandbar">
-          <Link to="/" className="dashboard-brand" aria-label="KhanaLens home">
+          <Link to="/home" className="dashboard-brand" aria-label="KhanaLens home">
             <span className="dashboard-brand-mark"><img src={khanaLensLogo} alt="" /></span>
             <span className="dashboard-brand-copy"><strong>Khana<span>Lens</span></strong><small>Scan. Analyze. Eat Smarter.</small></span>
           </Link>
           <div className="dashboard-header-actions">
             <button className="icon-button" aria-label="Notifications"><Bell size={20} /></button>
-            <Avatar user={user} />
+            <Link to="/profile" aria-label="Open profile"><Avatar user={user} /></Link>
           </div>
         </div>
         <header className="dashboard-header">
@@ -131,10 +131,10 @@ export const Home = () => {
         </section>
 
         <nav className="dashboard-nav" aria-label="Main navigation">
-          <Link className="active" to="/"><HomeIcon size={18} /><span>Home</span></Link>
-          <Link to="/dashboard"><LayoutDashboard size={18} /><span>Progress</span></Link>
+          <Link className="active" to="/home"><HomeIcon size={18} /><span>Home</span></Link>
+          <Link to="/progress"><LayoutDashboard size={18} /><span>Progress</span></Link>
           <Link className="scan-nav" to="/scan"><span><ScanLine size={24} /><b aria-hidden="true">✦</b></span><small>Scan</small></Link>
-          <Link to="/dashboard"><History size={18} /><span>History</span></Link>
+          <Link to="/history"><History size={18} /><span>History</span></Link>
           <Link to="/profile"><CircleUserRound size={19} /><span>Profile</span></Link>
         </nav>
       </main>

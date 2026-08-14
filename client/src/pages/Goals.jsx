@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -64,6 +64,8 @@ function ProgressChart({ metric, period, selectedIndex, onSelect }) {
   const x = (index) => padding.left + (index * (width - padding.left - padding.right)) / (data.values.length - 1);
   const y = (value) => height - padding.bottom - ((value - min) / (max - min)) * (height - padding.top - padding.bottom);
   const points = data.values.map((value, index) => `${x(index)},${y(value)}`).join(' ');
+  const peakIndex = data.values.reduce((bestIndex, value, index, values) => value > values[bestIndex] ? index : bestIndex, 0);
+  const peakValue = data.values[peakIndex];
   const areaPoints = `${x(0)},${height - padding.bottom} ${points} ${x(data.values.length - 1)},${height - padding.bottom}`;
   const ticks = [0, max / 2, max];
 
@@ -80,11 +82,17 @@ function ProgressChart({ metric, period, selectedIndex, onSelect }) {
           <text x={padding.left - 9} y={y(tick) + 4} textAnchor="end" className="chart-axis">{tick.toLocaleString()}</text>
         </g>)}
         <line x1={padding.left} x2={width - padding.right} y1={y(data.goal)} y2={y(data.goal)} className="chart-goal-line" />
+        <line className="goal-peak-vertical" x1={x(peakIndex)} x2={x(peakIndex)} y1={y(peakValue)} y2={height - padding.bottom} pathLength="1" />
         {selectedIndex !== null && <line x1={x(Math.min(selectedIndex, data.values.length - 1))} x2={x(Math.min(selectedIndex, data.values.length - 1))} y1={y(data.values[Math.min(selectedIndex, data.values.length - 1)]) + 7} y2={height - padding.bottom} className="chart-selection-line" />}
         <polygon points={areaPoints} fill={`url(#goal-area-${metric})`} />
-        <polyline points={points} fill="none" stroke={data.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline className="goal-chart-line" pathLength="1" points={points} fill="none" stroke={data.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <g className="goal-peak-marker" style={{ '--peak-delay': `${.95 + peakIndex * .07}s` }} aria-label={`Peak: ${peakValue.toLocaleString()} ${data.unit}`}>
+          <circle cx={x(peakIndex)} cy={y(peakValue)} r="12" fill={data.color} opacity=".16" className="goal-peak-pulse" />
+          <circle cx={x(peakIndex)} cy={y(peakValue)} r="7" fill="#fff" stroke={data.color} strokeWidth="3" />
+          <circle cx={x(peakIndex)} cy={y(peakValue)} r="3" fill={data.color} />
+        </g>
         {data.values.map((value, index) => <g key={`${value}-${index}`}>
-          <circle className={`chart-point ${selectedIndex === index ? 'selected' : ''}`} cx={x(index)} cy={y(value)} r={selectedIndex === index ? 6 : 5} fill="#fff" stroke={data.color} strokeWidth="2.5" tabIndex="0" role="button" aria-label={`${data.labels[index]}: ${value.toLocaleString()} ${data.unit}`} onClick={() => onSelect(index)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect(index); }} />
+          <circle className={`chart-point goal-chart-point ${selectedIndex === index ? 'selected' : ''}`} style={{ '--point-index': index }} cx={x(index)} cy={y(value)} r={selectedIndex === index ? 6 : 5} fill="#fff" stroke={data.color} strokeWidth="2.5" tabIndex="0" role="button" aria-label={`${data.labels[index]}: ${value.toLocaleString()} ${data.unit}`} onClick={() => onSelect(index)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect(index); }} />
           {selectedIndex === index && <g><rect x={x(index) - 31} y={y(value) - 32} width="62" height="22" rx="11" fill={data.color} /><text x={x(index)} y={y(value) - 17} textAnchor="middle" className="chart-tooltip">{value.toLocaleString()}{data.unit}</text></g>}
         </g>)}
         {data.labels.map((day, index) => <text key={`${day}-${index}`} x={x(index)} y={height - 8} textAnchor="middle" className="chart-axis">{day}</text>)}
@@ -98,6 +106,12 @@ export const Goals = () => {
   const [period, setPeriod] = useState('week');
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(periodData.kcal.week.values.length - 1);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setHeaderScrolled(window.scrollY > 18);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const active = useMemo(() => ({ ...progressData[metric], ...periodData[metric][period] }), [metric, period]);
   const periodLabel = periodOptions.find((option) => option.id === period).label;
   const selectedValue = active.values[Math.min(selectedIndex, active.values.length - 1)];
@@ -107,8 +121,9 @@ export const Goals = () => {
   return (
     <div className="goals-viewport">
       <main className="goals-page">
+        <div className={`goals-sticky-header ${headerScrolled ? 'scrolled' : ''}`}>
         <div className="goals-brandbar">
-          <Link to="/" className="goals-brand" aria-label="KhanaLens home">
+          <Link to="/home" className="goals-brand" aria-label="KhanaLens home">
             <span className="goals-brand-mark"><img src={khanaLensLogo} alt="" /></span>
             <span className="goals-brand-copy"><strong>Khana<span>Lens</span></strong><small>Scan. Analyze. Eat Smarter.</small></span>
           </Link>
@@ -118,7 +133,7 @@ export const Goals = () => {
           </div>
         </div>
         <header className="goals-topbar">
-          <Link to="/" className="goals-back" aria-label="Back to home"><ArrowLeft size={20} /></Link>
+          <Link to="/home" className="goals-back" aria-label="Back to home"><ArrowLeft size={20} /></Link>
           <div><span className="eyebrow">YOUR JOURNEY</span><h1>Goal Progress</h1></div>
           <div className="period-picker">
             <button className="period-button" onClick={() => setPeriodOpen((open) => !open)} aria-expanded={periodOpen} aria-haspopup="listbox">{periodOptions.find((option) => option.id === period).label} <ChevronDown size={15} /></button>
@@ -127,6 +142,7 @@ export const Goals = () => {
             </div>}
           </div>
         </header>
+        </div>
 
         <section className="goal-card progress-card">
           <div className="progress-card-heading">
@@ -142,14 +158,14 @@ export const Goals = () => {
 
         <section className="goal-card completion-card">
           <div className="completion-heading"><div><p className="card-kicker">AT A GLANCE</p><h2>Goal completion</h2><span className="completion-period">{periodLabel}</span></div><span className="completion-total">{completion}%<small>{periodLabel.toLowerCase()}</small></span></div>
-          <div className="completion-row"><div><span>Calories</span><strong>82%</strong></div><div className="completion-track"><span style={{ width: '82%', background: '#4cae91' }} /></div></div>
-          <div className="completion-row"><div><span>Protein</span><strong>80%</strong></div><div className="completion-track"><span style={{ width: '80%', background: '#7a8dd8' }} /></div></div>
-          <div className="completion-row"><div><span>Carbs</span><strong>66%</strong></div><div className="completion-track"><span style={{ width: '66%', background: '#f0ad62' }} /></div></div>
-          <div className="completion-row"><div><span>Fat</span><strong>69%</strong></div><div className="completion-track"><span style={{ width: '69%', background: '#6db8b0' }} /></div></div>
+          <div className="completion-row"><div><span>Calories</span><strong>82%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': '82%', background: '#18B895' }} /></div></div>
+          <div className="completion-row"><div><span>Protein</span><strong>80%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': '80%', background: '#7a8dd8' }} /></div></div>
+          <div className="completion-row"><div><span>Carbs</span><strong>66%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': '66%', background: '#f0ad62' }} /></div></div>
+          <div className="completion-row"><div><span>Fat</span><strong>69%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': '69%', background: '#6db8b0' }} /></div></div>
         </section>
 
         <p className="goal-note">Small, consistent steps add up. Keep tracking to stay on course.</p>
-        <nav className="dashboard-nav goals-nav" aria-label="Main navigation"><Link to="/"><Home size={18} /><span>Home</span></Link><Link className="active" to="/goals"><LayoutDashboard size={18} /><span>Progress</span></Link><Link className="scan-nav" to="/scan"><span><ScanLine size={24} /><b aria-hidden="true">✦</b></span><small>Scan</small></Link><Link to="/dashboard"><History size={18} /><span>History</span></Link><Link to="/profile"><CircleUserRound size={19} /><span>Profile</span></Link></nav>
+        <nav className="dashboard-nav goals-nav" aria-label="Main navigation"><Link to="/home"><Home size={18} /><span>Home</span></Link><Link className="active" to="/progress/goals"><LayoutDashboard size={18} /><span>Progress</span></Link><Link className="scan-nav" to="/scan"><span><ScanLine size={24} /><b aria-hidden="true">✦</b></span><small>Scan</small></Link><Link to="/history"><History size={18} /><span>History</span></Link><Link to="/profile"><CircleUserRound size={19} /><span>Profile</span></Link></nav>
       </main>
     </div>
   );

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 // ------------------------------------------------------------------
 // Fill these in once you've registered your apps. Until then, the
@@ -44,8 +46,10 @@ function loadScript(src, id) {
   });
 }
 
-export default function Login() {
-  const [isSignup, setIsSignup] = useState(false);
+export default function Login({ initialSignup = false }) {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [isSignup, setIsSignup] = useState(initialSignup);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -83,7 +87,8 @@ export default function Login() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      alert("Login successful!");
+      login("demo-token", { name: email.split("@")[0] || "Demo User", email });
+      navigate("/home");
     }, 1200);
   }
 
@@ -100,11 +105,12 @@ export default function Login() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      alert("Account created successfully!");
+      login("demo-token", { name, email: signupEmail });
       setEmail(signupEmail);
       setPassword("");
       setSignupPassword("");
       setIsSignup(false);
+      navigate("/home");
     }, 1200);
   }
 
@@ -191,12 +197,14 @@ export default function Login() {
     setLoading(false);
     setErrors({});
     setIsSignup(true);
+    navigate("/register");
   }
 
   function goToLogin() {
     setLoading(false);
     setErrors({});
     setIsSignup(false);
+    navigate("/login");
   }
 
   return (
