@@ -6,12 +6,14 @@ import { Home } from './pages/Home';
 import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
 import SplashPage from './pages/SplashPage';
+import Progress from './pages/Progress';
 
 export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-      <SplashPage />
+      {/* <SplashPage /> */}
+      <Progress/>
         {/* <MainLayout>
           <Routes>
             <Route path="/" element={<Home />} />
