@@ -11,6 +11,7 @@ import FoodAnalysisResult from './pages/FoodAnalysisResult';
 import { sampleResult } from "./pages/FoodAnalysisResult.example";
 import ItemDetails from './pages/ItemDetails';
 import Login from './pages/Login';
+import History from "./pages/History";
 
 export function App() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -45,6 +46,7 @@ export function App() {
       )}
       <SplashPage />
     <Login />
+    <History />
       
         {/* <MainLayout>
           <Routes>
