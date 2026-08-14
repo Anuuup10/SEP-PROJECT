@@ -7,6 +7,7 @@ import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
 import { Goals } from './pages/Goals';
 import SplashPage from './pages/SplashPage';
+import Progress from './pages/Progress';
 import FoodAnalysisResult from './pages/FoodAnalysisResult';
 import { sampleResult } from "./pages/FoodAnalysisResult.example";
 import ItemDetails from './pages/ItemDetails';
@@ -19,6 +20,8 @@ export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+      {/* <SplashPage /> */}
+      <Progress/>
       {/* < SplashPage /> */}
         <Routes>
           <Route path="/onboarding" element={<SplashPage />} />
