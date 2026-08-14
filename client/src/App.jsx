@@ -7,6 +7,7 @@ import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
 import SplashPage from './pages/SplashPage';
 import Login from './pages/Login';
+import History from "./pages/History";
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
       <BrowserRouter>
       <SplashPage />
     <Login />
+    <History />
       
         {/* <MainLayout>
           <Routes>
