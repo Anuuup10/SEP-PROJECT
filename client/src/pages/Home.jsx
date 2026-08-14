@@ -18,6 +18,11 @@ export const Home = () => {
             <Camera size={22} /> Start AI Food Scan
           </button>
         </Link>
+        <Link to="/login">
+          <button className="btn-secondary" style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Login
+          </button>
+        </Link>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', textAlign: 'left' }}>

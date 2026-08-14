@@ -6,12 +6,15 @@ import { Home } from './pages/Home';
 import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
 import SplashPage from './pages/SplashPage';
+import Login from './pages/Login';
 
 export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
       <SplashPage />
+    <Login />
+      
         {/* <MainLayout>
           <Routes>
             <Route path="/" element={<Home />} />
