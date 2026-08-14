@@ -1,18 +1,106 @@
-# Features Breakdown
+# Features
 
-## 1. Instant AI Food Scan
-- **Multimodal Scanning**: Upload or capture food photos directly from desktop or mobile devices.
-- **Nutritional Analysis**: Powered by Google Gemini AI to identify dishes, estimate caloric values, and calculate macronutrient breakdowns (protein, carbs, fats).
-- **Health Rating**: Generates an overall health score (1-100) with key dietary takeaways.
+## MVP Features
 
-## 2. Daily Calorie & Macro Tracking
-- **Progress Dashboard**: Displays daily consumed calories vs target daily goal.
-- **Macronutrient Balance**: Visual progress rings and progress bars for protein, carbohydrate, and fat intake.
+### 1. Authentication
 
-## 3. History & Meal Logs
-- **Timestamped Logs**: View detailed past meal entries with image thumbnails and nutrition cards.
-- **Filter & Search**: Retrieve past logs by date range or meal type.
+Users can:
 
-## 4. User Authentication & Personal Profiles
-- **Secure JWT Auth**: User signup, login, and token session persistence.
-- **Custom Goals**: Set custom daily calorie and macro goals.
+- Register
+- Login
+- Logout
+- View their profile
+
+### 2. Food Scanner
+
+Users can:
+
+- Open the camera
+- Capture a food image
+- Upload an existing image
+- Submit the image for analysis
+
+### 3. AI Food Detection
+
+The AI should attempt to identify:
+
+- Food name
+- Multiple food items
+- Estimated portion
+- Confidence level
+
+Example:
+
+Chicken Rice Meal
+
+- Chicken - approximately 150g
+- Rice - approximately 200g
+- Salad - approximately 80g
+
+### 4. Nutrition Analysis
+
+Display:
+
+- Calories
+- Protein
+- Carbohydrates
+- Fat
+- Fiber
+- Sugar
+- Sodium
+- Saturated fat
+- Other available nutrients
+
+### 5. Meal Summary
+
+Show:
+
+- Total calories
+- Total protein
+- Total carbohydrates
+- Total fat
+- Total fiber
+
+### 6. Individual Food Details
+
+Users can select an individual food item and view its nutritional information.
+
+### 7. Save Meal
+
+Users can save an analyzed meal to their account.
+
+### 8. Meal History
+
+Users can view previously analyzed meals.
+
+---
+
+# Phase 2
+
+- Daily calorie tracking
+- Macro tracking
+- Nutrition goals
+- Progress dashboard
+- Charts
+- Weekly summaries
+
+# Phase 3
+
+- AI meal recommendations
+- Healthier alternatives
+- Meal comparison
+- Weekly AI insights
+- Personalized nutrition suggestions
+
+---
+
+# Out of Scope for MVP
+
+The following will not be implemented initially:
+
+- Social networking
+- Food delivery
+- Online grocery shopping
+- Medical diagnosis
+- Professional medical advice
+- Advanced wearable integration
