@@ -9,6 +9,7 @@ import SplashPage from './pages/SplashPage';
 import FoodAnalysisResult from './pages/FoodAnalysisResult';
 import { sampleResult } from "./pages/FoodAnalysisResult.example";
 import ItemDetails from './pages/ItemDetails';
+import Login from './pages/Login';
 
 export function App() {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -33,6 +34,9 @@ export function App() {
           />
         </>
       )}
+      <SplashPage />
+    <Login />
+      
         {/* <MainLayout>
           <Routes>
             <Route path="/" element={<Home />} />
