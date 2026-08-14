@@ -28,6 +28,13 @@ body {
     radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.06) 0%, transparent 40%);
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
 .glass-card {
   background: var(--surface-color);
   backdrop-filter: blur(16px);
@@ -73,31 +80,37 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  min-height: 100dvh; /* Handles dynamic mobile browsers (safari/chrome bars) */
-  padding: clamp(12px, 3vw, 24px);
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh; /* Handles dynamic mobile browsers (safari/chrome bars) */
+  overflow: hidden;
+  padding: 0;
 }
 
 /* Fluid Mobile Card Frame */
 .mobile-card {
   width: 100%;
   max-width: min(390px, 100%);
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 0;
   background-color: #ffffff;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: clamp(12px, 2.5vh, 20px);
-  padding: clamp(18px, 3.5vh, 28px) clamp(18px, 5vw, 24px);
+  justify-content: space-evenly;
+  gap: clamp(8px, 1.8dvh, 16px);
+  padding: clamp(12px, 2.6dvh, 24px) clamp(18px, 5vw, 24px);
   overflow: hidden;
   user-select: none;
 }
 
 /* Desktop & Tablet Enhancements */
 @media (min-width: 480px) {
+  .app-viewport {
+    padding: clamp(12px, 3vw, 24px);
+  }
+
   .mobile-card {
     min-height: auto;
     height: min(680px, calc(100dvh - 32px));
@@ -228,13 +241,13 @@ body {
 }
 
 .food-image-wrapper {
-  width: clamp(128px, 31vh, 178px);
-  height: clamp(128px, 31vh, 178px);
+  width: clamp(118px, 25dvh, 170px);
+  height: clamp(118px, 25dvh, 170px);
   border-radius: 50%;
   overflow: hidden;
   position: relative;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
-  margin-bottom: clamp(10px, 2vh, 14px);
+  margin-bottom: clamp(6px, 1.2dvh, 12px);
 }
 
 .food-slide {
@@ -284,14 +297,14 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: clamp(8px, 1.4dvh, 10px);
   z-index: 2;
   margin-top: 0;
 }
 
 .btn {
   width: 100%;
-  min-height: clamp(42px, 6vh, 48px);
+  min-height: clamp(40px, 5.6dvh, 48px);
   padding: 0 clamp(16px, 4vw, 20px);
   border-radius: 14px;
   font-size: clamp(14px, 3.5vw, 16px);
@@ -329,22 +342,730 @@ body {
 /* Adjustments for ultra-short phone screens */
 @media (max-height: 600px) {
   .logo-badge {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 6px;
+    width: 58px;
+    height: 58px;
+    margin-bottom: 4px;
   }
   .food-image-wrapper {
-    width: 112px;
-    height: 112px;
-    margin-bottom: 6px;
+    width: 96px;
+    height: 96px;
+    margin-bottom: 4px;
   }
   .mobile-card {
-    padding-top: 14px;
-    padding-bottom: 14px;
-    gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    gap: 6px;
+  }
+  .app-title {
+    margin-bottom: 4px;
+  }
+  .description {
+    line-height: 1.35;
   }
   .btn {
-    min-height: 38px;
+    min-height: 36px;
+  }
+}
+
+
+/* ==========================================================================
+   FoodAnalysisResult.css
+   Page 7 — Food Analysis Result
+   Mobile-first, fully responsive (fluid on phones, centers as a
+   phone-width card on tablets/desktop).
+   ========================================================================== */
+
+.result-page {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f4f6f8;
+  overflow: hidden;
+}
+
+.result-card {
+  width: 100%;
+  max-width: min(390px, 100%);
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.result-card--empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 6%;
+}
+
+.empty-text {
+  color: #8a9a96;
+  font-size: 14px;
+}
+
+/* Header */
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(12px, 2.7dvh, 20px) 5% clamp(8px, 1.4dvh, 12px);
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(23, 51, 46, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* Titles */
+
+.result-titles {
+  padding: 0 6%;
+  flex-shrink: 0;
+}
+
+.result-title {
+  font-size: clamp(20px, 5.5vw, 24px);
+  font-weight: 700;
+  color: #17332e;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.result-subtitle {
+  color: #8a9a96;
+  font-size: clamp(12.5px, 3.2vw, 14px);
+  margin: 4px 0 0;
+}
+
+/* Meal photo */
+
+.result-photo-wrapper {
+  padding: 0 6%;
+  margin-top: clamp(10px, 2dvh, 18px);
+  flex-shrink: 0;
+}
+
+.result-photo {
+  width: 100%;
+  height: clamp(132px, 27dvh, 230px);
+  border-radius: 24px;
+  overflow: hidden;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 10px 24px rgba(23, 51, 46, 0.08);
+}
+
+/* Macro summary row */
+
+.macro-row {
+  padding: 0 6%;
+  margin-top: clamp(12px, 2.4dvh, 22px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.macro-total-value {
+  font-size: clamp(24px, 7vw, 30px);
+  font-weight: 700;
+  color: #17332e;
+  line-height: 1;
+}
+
+.macro-total-label,
+.macro-stat-label {
+  color: #8a9a96;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.macro-stat {
+  text-align: right;
+}
+
+.macro-stat-value {
+  font-size: clamp(13px, 3.6vw, 15px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.macro-stat-value--protein {
+  color: #2f9e8f;
+}
+
+.macro-stat-value--carbs {
+  color: #e8a33d;
+}
+
+.macro-stat-value--fats {
+  color: #e8734d;
+}
+
+/* Detected items */
+
+.detected-items-section {
+  padding: 0 6%;
+  margin-top: clamp(14px, 2.8dvh, 24px);
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detected-items-heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: #17332e;
+  margin: 0 0 clamp(8px, 1.4dvh, 12px);
+  flex-shrink: 0;
+}
+
+.detected-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(81, 164, 140, 0.55) transparent;
+}
+
+.detected-items-list--scrollable {
+  max-height: none;
+}
+
+.detected-items-list::-webkit-scrollbar,
+.detected-items-list--scrollable::-webkit-scrollbar {
+  width: 4px;
+}
+
+.detected-items-list::-webkit-scrollbar-thumb,
+.detected-items-list--scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(81, 164, 140, 0.55);
+  border-radius: 999px;
+}
+
+.detected-item-row {
+  width: 100%;
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 4px 14px rgba(23, 51, 46, 0.05);
+  text-align: left;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.detected-item-row:active {
+  transform: scale(0.99);
+}
+
+.detected-item-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: #f0f5f3;
+}
+
+.detected-item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.detected-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.detected-item-name {
+  color: #17332e;
+  font-weight: 600;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detected-item-meta {
+  color: #8a9a96;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.detected-item-chevron {
+  flex-shrink: 0;
+}
+
+/* View Details CTA */
+
+.view-details-wrapper {
+  padding: 0 6%;
+  margin-top: 0;
+  padding-top: clamp(12px, 2.2dvh, 20px);
+  padding-bottom: clamp(12px, 2.6dvh, 24px);
+  flex-shrink: 0;
+}
+
+.view-details-btn {
+  width: 100%;
+  min-height: clamp(40px, 5.6dvh, 48px);
+  padding: 0 clamp(16px, 4vw, 20px);
+  border-radius: 16px;
+  border: none;
+  background-color: #51a48c;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: clamp(14px, 3.8vw, 16px);
+  box-shadow: 0 4px 12px rgba(81, 164, 140, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.view-details-btn:hover {
+  background-color: #438e78;
+}
+
+.view-details-btn:active {
+  transform: scale(0.98);
+}
+
+.view-details-btn:focus-visible {
+  outline: 2px solid #51a48c;
+  outline-offset: 2px;
+}
+
+@media (max-height: 700px) {
+  .result-photo {
+    height: clamp(118px, 23dvh, 165px);
+    border-radius: 20px;
+  }
+
+  .detected-items-list--scrollable {
+    max-height: none;
+  }
+
+  .detected-item-row {
+    min-height: 60px;
+    padding: 8px;
+  }
+
+  .detected-item-thumb {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-height: 600px) {
+  .result-header {
+    padding-top: 8px;
+    padding-bottom: 6px;
+  }
+
+  .result-photo-wrapper {
+    margin-top: 8px;
+  }
+
+  .result-photo {
+    height: 96px;
+    border-radius: 16px;
+  }
+
+  .macro-row {
+    margin-top: 10px;
+  }
+
+  .detected-items-section {
+    margin-top: 10px;
+  }
+
+  .detected-items-list,
+  .detected-items-list--scrollable {
+    gap: 8px;
+  }
+
+  .detected-items-list--scrollable {
+    max-height: none;
+  }
+
+  .detected-item-row {
+    min-height: 56px;
+  }
+
+  .view-details-wrapper {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+}
+
+/* ==========================================================================
+   Small-phone tightening (very narrow devices, e.g. iPhone SE / 320px)
+   ========================================================================== */
+@media (max-width: 360px) {
+  .macro-stat-label,
+  .macro-total-label {
+    font-size: 10px;
+  }
+
+  .detected-item-thumb {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ==========================================================================
+   Larger phones / small tablets — a little extra breathing room
+   ========================================================================== */
+@media (min-width: 480px) {
+  .result-page {
+    padding: clamp(12px, 3vw, 24px);
+  }
+
+  .result-card {
+    border-radius: 30px;
+    height: min(680px, calc(100dvh - 32px));
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  }
+}
+
+
+
+/* ItemDetails-CSS */
+.item-details-page {
+  background-color: #f4f6f8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  overflow: hidden;
+  padding: 0;
+}
+
+.item-details-card {
+  width: 100%;
+  max-width: min(390px, 100%);
+  height: 100%;
+  min-height: 0;
+  background-color: #ffffff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(12px, 2.6dvh, 24px) clamp(18px, 5vw, 24px);
+  overflow: hidden;
+  user-select: none;
+}
+
+.item-details-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.item-details-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ffffff;
+  color: #17332e;
+  box-shadow: 0 2px 8px rgba(23, 51, 46, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.item-details-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: clamp(8px, 1.8dvh, 16px);
+  flex-shrink: 0;
+}
+
+.item-details-image-wrap {
+  width: clamp(92px, 25vw, 118px);
+  height: clamp(76px, 20vw, 96px);
+  border-radius: 18px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.item-details-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.item-details-title-block h1 {
+  color: #111827;
+  font-size: clamp(19px, 5.2vw, 24px);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 6px;
+}
+
+.item-details-title-block p {
+  color: #6b7280;
+  font-size: clamp(12px, 3.3vw, 14px);
+  font-weight: 700;
+  margin: 0;
+}
+
+.item-details-top-metrics {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 12px;
+  margin-top: clamp(18px, 3.2dvh, 28px);
+  flex-shrink: 0;
+}
+
+.item-details-calorie-card,
+.item-details-protein-card,
+.item-details-macro-card {
+  background-color: #f4fbf8;
+  border-radius: 14px;
+  min-height: clamp(72px, 13dvh, 92px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-details-calorie-card {
+  background-color: #ffffff;
+  box-shadow: 0 8px 24px rgba(23, 51, 46, 0.08);
+}
+
+.item-details-calorie-card strong {
+  color: #111827;
+  font-size: clamp(25px, 7vw, 32px);
+  line-height: 1;
+}
+
+.item-details-calorie-card span {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.item-details-protein-card strong,
+.item-details-protein-card span,
+.item-details-macro-card strong,
+.item-details-macro-card span {
+  color: #3b8770;
+}
+
+.item-details-protein-card strong,
+.item-details-protein-card span {
+  font-size: 14px;
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.item-details-macro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.item-details-macro-card {
+  min-height: clamp(58px, 10dvh, 76px);
+}
+
+.item-details-macro-card strong {
+  font-size: clamp(16px, 4.2vw, 19px);
+  line-height: 1;
+}
+
+.item-details-macro-card span {
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.item-details-nutrition {
+  margin-top: clamp(20px, 3.5dvh, 28px);
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.item-details-nutrition h2 {
+  color: #111827;
+  font-size: clamp(17px, 4.6vw, 20px);
+  font-weight: 800;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.item-details-nutrition p {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 4px 0 10px;
+  flex-shrink: 0;
+}
+
+.item-details-table {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(81, 164, 140, 0.55) transparent;
+}
+
+.item-details-table::-webkit-scrollbar {
+  width: 4px;
+}
+
+.item-details-table::-webkit-scrollbar-thumb {
+  background-color: rgba(81, 164, 140, 0.55);
+  border-radius: 999px;
+}
+
+.item-details-row {
+  min-height: 32px;
+  border-bottom: 1px solid #edf2f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.item-details-row span,
+.item-details-row strong {
+  font-size: clamp(12px, 3.2vw, 14px);
+  line-height: 1.2;
+}
+
+.item-details-row span {
+  color: #374151;
+  font-weight: 700;
+}
+
+.item-details-row strong {
+  color: #111827;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.item-details-row small {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.item-details-edit-btn {
+  width: 100%;
+  min-height: clamp(40px, 5.6dvh, 48px);
+  border: none;
+  border-radius: 14px;
+  background-color: #51a48c;
+  color: #ffffff;
+  font-size: clamp(14px, 3.8vw, 16px);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(81, 164, 140, 0.3);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+@media (min-width: 480px) {
+  .item-details-page {
+    padding: clamp(12px, 3vw, 24px);
+  }
+
+  .item-details-card {
+    height: min(680px, calc(100dvh - 32px));
+    border-radius: 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  }
+}
+
+@media (max-height: 600px) {
+  .item-details-card {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .item-details-hero {
+    margin-top: 6px;
+  }
+
+  .item-details-image-wrap {
+    width: 82px;
+    height: 66px;
+  }
+
+  .item-details-top-metrics {
+    margin-top: 10px;
+  }
+
+  .item-details-calorie-card,
+  .item-details-protein-card {
+    min-height: 58px;
+  }
+
+  .item-details-macro-card {
+    min-height: 48px;
+  }
+
+  .item-details-nutrition {
+    margin-top: 12px;
+  }
+
+  .item-details-row {
+    min-height: 27px;
   }
 }
 
