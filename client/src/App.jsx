@@ -5,6 +5,7 @@ import { MainLayout } from './layouts/MainLayout';
 import { Home } from './pages/Home';
 import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
+import { Goals } from './pages/Goals';
 import SplashPage from './pages/SplashPage';
 import FoodAnalysisResult from './pages/FoodAnalysisResult';
 import { sampleResult } from "./pages/FoodAnalysisResult.example";
@@ -23,6 +24,7 @@ export function App() {
           <Route path="/" element={<Home />} />
           <Route path="/scan" element={<Scan />} />
           <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+          <Route path="/goals" element={<Goals />} />
         </Routes>
       {selectedItem ? (
         <ItemDetails
