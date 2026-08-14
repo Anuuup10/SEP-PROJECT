@@ -17,6 +17,13 @@ export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+      {/* < SplashPage /> */}
+        <Routes>
+          <Route path="/onboarding" element={<SplashPage />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/scan" element={<Scan />} />
+          <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+        </Routes>
       {selectedItem ? (
         <ItemDetails
           item={selectedItem}
