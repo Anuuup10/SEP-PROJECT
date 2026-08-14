@@ -6,21 +6,25 @@ import { Home } from './pages/Home';
 import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
 import SplashPage from './pages/SplashPage';
+import Setting from './pages/Setting';
 
 export function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-      <SplashPage />
-        {/* <MainLayout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/scan" element={<Scan />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-          </Routes>
-        </MainLayout> */}
-      </BrowserRouter>
-    </AuthProvider>
+    <>
+      <Setting/>    
+    </>
+    // <AuthProvider>
+    //   <BrowserRouter>
+    //   <SplashPage />
+    //     {/* <MainLayout>
+    //       <Routes>
+    //         <Route path="/" element={<Home />} />
+    //         <Route path="/scan" element={<Scan />} />
+    //         <Route path="/dashboard" element={<Dashboard />} />
+    //       </Routes>
+    //     </MainLayout> */}
+    //   </BrowserRouter>
+    // </AuthProvider>
   );
 }
 
