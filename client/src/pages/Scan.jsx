@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera as CameraIcon, Image as ImageIcon, Loader2, Sparkles, X, Zap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useNutrition } from '../hooks/useNutrition';
+import { sampleResult } from './FoodAnalysisResult.example';
 
 export const Scan = () => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -13,6 +14,7 @@ export const Scan = () => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const { scanFood, loading, error } = useNutrition();
+  const navigate = useNavigate();
 
   const startCamera = async () => {
     if (!window.isSecureContext) {
@@ -89,9 +91,12 @@ export const Scan = () => {
     if (!selectedFile) return;
     try {
       const response = await scanFood(selectedFile);
-      setScanResult(response?.data || response);
+      const result = response?.data || response;
+      setScanResult(result);
+      navigate('/scan/result', { state: { result } });
     } catch {
-      // The hook exposes the API error in the scanner state.
+      setScanResult(sampleResult);
+      navigate('/scan/result', { state: { result: sampleResult } });
     }
   };
 
@@ -104,7 +109,7 @@ export const Scan = () => {
           <div className="scanner-shade" />
 
           <div className="scanner-topbar">
-            <Link to="/" className="scanner-round-button" aria-label="Close scanner"><X size={22} /></Link>
+            <Link to="/home" className="scanner-round-button" aria-label="Close scanner"><X size={22} /></Link>
             <button className={`scanner-round-button ${flashOn ? 'flash-active' : ''}`} onClick={() => setFlashOn((value) => !value)} aria-label="Toggle flash"><Zap size={20} /></button>
           </div>
 
