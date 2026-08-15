@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   Filter,
@@ -231,7 +230,6 @@ function FoodIcon({ food, expanded }) {
 ========================================================= */
 
 function BottomNavigation() {
-  const navigate = useNavigate();
   const navItems = [
     {
       name: "Home",
@@ -270,7 +268,7 @@ function BottomNavigation() {
               item.isScan ? "nav-scan" : ""
             }`}
             aria-label={item.name}
-            onClick={() => navigate(item.name === "Home" ? "/home" : item.name === "Progress" ? "/progress" : item.name === "Scan" ? "/scan" : item.name === "Profile" ? "/profile" : "/history")}
+            onClick={() => console.log(item.name)}
           >
             {item.isScan ? (
               <span className="scan-button">

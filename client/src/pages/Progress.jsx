@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import khanaLensLogo from "../assets/images/KhanaLens.jpg";
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,12 +9,9 @@ import {
   ScanLine,
   History,
   User,
-  Bell,
-  UserRound,
 } from "lucide-react";
 
 function Progress() {
-  const navigate = useNavigate();
   // Calorie data
   const calorieData = {
     consumed: 1650,
@@ -104,13 +99,6 @@ function Progress() {
 
   // Calendar dropdown
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [headerScrolled, setHeaderScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setHeaderScrolled(window.scrollY > 18);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Progress ring animation
   const [ringProgress, setRingProgress] = useState(0);
@@ -147,7 +135,7 @@ function Progress() {
         }
 
         .knl-page-bg {
-          background: linear-gradient(180deg, #EAF7F3 0%, #F5FAF8 46%, #EEF6F3 100%);
+          background: #F3F4F6;
           min-height: 100vh;
           width: 100%;
           display: flex;
@@ -157,117 +145,10 @@ function Progress() {
         }
 
         .knl-progress-card {
-          background: #FCFFFE;
+          background: #FFFFFF;
           border-radius: 24px;
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
           height: fit-content;
-        }
-
-        .knl-sticky-shell {
-          position: sticky;
-          top: 0;
-          z-index: 30;
-          margin: -24px -20px 14px;
-          padding: 12px 20px 8px;
-          background: rgba(255,255,255,.96);
-          backdrop-filter: blur(14px);
-          border-bottom: 1px solid #E8F1EE;
-          box-shadow: 0 3px 16px rgba(44, 106, 87, .04);
-          transition: padding .28s ease, box-shadow .28s ease;
-        }
-
-        .knl-sticky-shell.scrolled { padding-top: 7px; padding-bottom: 6px; box-shadow: 0 8px 22px rgba(44, 106, 87, .10); }
-
-        .knl-brandbar {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 0;
-          margin: 0;
-          transition: transform .28s ease;
-        }
-
-        .knl-brand-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-        .knl-header-action { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #DCECE7; border-radius: 50%; background: #F8FCFB; color: #55706A; cursor: pointer; }
-        .knl-header-action:hover { background: #E5F7F1; color: #079879; }
-        .knl-profile-action { overflow: hidden; background: #E2F3ED; color: #159979; }
-
-        .knl-progress-heading {
-          min-height: 42px;
-          padding: 8px 0 2px;
-          background: transparent;
-          transition: padding .28s ease, transform .28s ease;
-        }
-
-        .knl-sticky-shell.scrolled .knl-progress-heading { padding-top: 4px; transform: scale(.96); transform-origin: center top; }
-
-        .knl-brandmark {
-          width: 42px;
-          height: 42px;
-          border-radius: 13px;
-          overflow: hidden;
-          box-shadow: 0 5px 12px rgba(30, 145, 115, .14);
-          flex: 0 0 42px;
-        }
-
-        .knl-brandmark img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.2); }
-        .knl-brandcopy strong { display: block; color: #172A35; font-size: 18px; letter-spacing: -.4px; }
-        .knl-brandcopy strong span { color: #29A986; }
-        .knl-brandcopy small { display: block; margin-top: 2px; color: #83928E; font-size: 10px; }
-
-        .knl-nav-item {
-          min-width: 52px;
-          padding: 5px 7px;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: background .2s ease, color .2s ease, transform .2s ease;
-        }
-
-        .knl-nav-item:hover { background: #ECF8F4; }
-        .knl-nav-item:active { transform: scale(.95); }
-        .knl-nav-item-active { background: #E5F7F1; }
-
-        .knl-summary-card, .knl-nutrients-card, .knl-meals-card { border: 1px solid #D9EEE7; border-radius: 20px; background: #FFFFFF; box-shadow: 0 10px 24px rgba(44, 106, 87, .08); animation: knl-rise .5s ease both; }
-        .knl-summary-card { padding: 18px 12px 8px; animation-delay: .05s; background: linear-gradient(145deg, #FFFFFF 0%, #F2FBF8 100%); border-top: 3px solid #2AB594; }
-        .knl-nutrients-card { margin-top: 14px; padding: 16px 14px 4px; animation-delay: .12s; background: #FBFFFD; border-top: 3px solid #2AB594; }
-        .knl-meals-card { margin-top: 14px; padding: 14px 12px 4px; animation-delay: .2s; background: #FFFFFF; border-top: 3px solid #F0A928; }
-        .knl-nutrient-row { animation: knl-rise .45s ease both; }
-        .knl-progress-fill { animation: knl-fill 1.45s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--row-index) * 70ms); }
-        .knl-meals-card .knl-meal-card {
-          position: relative;
-          margin: 8px 0;
-          border: 1px solid #EAF1EF;
-          border-radius: 15px;
-          background: #FBFEFD;
-          cursor: pointer;
-          transition: transform .24s cubic-bezier(.22,1,.36,1), box-shadow .24s ease, border-color .24s ease, background .24s ease;
-        }
-        .knl-meals-card .knl-meal-card:hover,
-        .knl-meals-card .knl-meal-card:focus-within {
-          transform: translateY(-5px) scale(1.015);
-          border-color: #4EC19F;
-          background: #ECFAF5;
-          box-shadow: 0 14px 28px rgba(31, 145, 113, .20);
-        }
-        .knl-meals-card .knl-meal-card:active { transform: scale(.985); background: #E7F8F1; }
-        .knl-meals-card .knl-meal-arrow { display: flex; align-items: center; color: #159979; }
-        .knl-meals-card .knl-meal-image { box-shadow: 0 3px 9px rgba(31, 75, 61, .14); transition: transform .24s cubic-bezier(.22,1,.36,1); }
-        .knl-meals-card .knl-meal-card:hover .knl-meal-image,
-        .knl-meals-card .knl-meal-card:focus-within .knl-meal-image { transform: scale(1.06); }
-        .knl-progress-heading h1 { color: #123A32 !important; letter-spacing: -.3px; }
-        .knl-nutrient-label { color: #245149 !important; font-weight: 650 !important; }
-        .knl-nutrient-value { color: #173B34 !important; font-weight: 750 !important; }
-        .knl-meals-title { color: #173B34 !important; font-size: 16px !important; font-weight: 750 !important; }
-        .knl-see-all { color: #0A9A78 !important; font-weight: 750 !important; }
-        .knl-meal-name { color: #1B4038 !important; font-weight: 750 !important; }
-        .knl-meal-meta { color: #718E86 !important; }
-        .knl-meal-time { color: #5D7E75 !important; font-weight: 650 !important; }
-        @keyframes knl-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes knl-fill {
-          0% { width: 0; }
-          52% { width: 100%; }
-          68% { width: 100%; }
-          100% { width: var(--target-width); }
         }
 
         /* Meal list - NO scrollbar */
@@ -394,19 +275,8 @@ function Progress() {
             position: "relative",
           }}
         >
-          <div className={`knl-sticky-shell ${headerScrolled ? "scrolled" : ""}`}>
-          <div className="knl-brandbar">
-            <div className="knl-brandmark"><img src={khanaLensLogo} alt="KhanaLens logo" /></div>
-            <div className="knl-brandcopy"><strong>Khana<span>Lens</span></strong><small>Scan. Analyze. Eat Smarter.</small></div>
-            <div className="knl-brand-actions">
-              <button className="knl-header-action" aria-label="Notifications"><Bell size={16} /></button>
-              <button className="knl-header-action knl-profile-action" aria-label="Open profile" onClick={() => navigate("/profile")}><UserRound size={17} /></button>
-            </div>
-          </div>
-
           {/* Header */}
           <div
-            className="knl-progress-heading"
             style={{
               display: "flex",
               alignItems: "center",
@@ -417,8 +287,8 @@ function Progress() {
 
             <h1
               style={{
-                fontSize: 17,
-                fontWeight: 750,
+                fontSize: 15,
+                fontWeight: 600,
                 color: "#111827",
                 margin: 0,
               }}
@@ -427,7 +297,7 @@ function Progress() {
             </h1>
 
             <button
-              onClick={() => navigate("/progress/goals")}
+              onClick={() => setCalendarOpen((open) => !open)}
               style={{
                 background: "none",
                 border: "none",
@@ -437,7 +307,6 @@ function Progress() {
             >
               <Calendar size={18} color="#6B7280" />
             </button>
-          </div>
           </div>
 
           {/* Date */}
@@ -482,7 +351,6 @@ function Progress() {
 
           {/* Calorie Progress Circle */}
           <div
-            className="knl-summary-card"
             style={{
               display: "flex",
               justifyContent: "center",
@@ -582,8 +450,8 @@ function Progress() {
           </div>
 
           {/* Nutrients */}
-          <div className="knl-nutrients-card">
-            {nutrients.map((n, index) => {
+          <div>
+            {nutrients.map((n) => {
               const nPct = Math.min(
                 (n.value / n.goal) * 100,
                 100
@@ -592,7 +460,6 @@ function Progress() {
               return (
                 <div
                   key={n.label}
-                  className="knl-nutrient-row"
                   style={{
                     marginBottom: 14,
                   }}
@@ -605,7 +472,6 @@ function Progress() {
                     }}
                   >
                     <span
-                      className="knl-nutrient-label"
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -624,7 +490,6 @@ function Progress() {
                     </span>
 
                     <span
-                      className="knl-nutrient-value"
                       style={{
                         fontSize: 13,
                         fontWeight: 500,
@@ -647,11 +512,8 @@ function Progress() {
                     }}
                   >
                     <div
-                      className="knl-progress-fill"
                       style={{
-                        width: "100%",
-                        "--target-width": `${nPct}%`,
-                        "--row-index": index,
+                        width: `${nPct}%`,
                         height: "100%",
                         background: n.color,
                         borderRadius: 999,
@@ -664,7 +526,7 @@ function Progress() {
           </div>
 
           {/* Today's Meals */}
-          <div className="knl-meals-card">
+          <div style={{ marginTop: 20 }}>
             <div
               style={{
                 display: "flex",
@@ -674,7 +536,6 @@ function Progress() {
               }}
             >
               <h2
-                className="knl-meals-title"
                 style={{
                   fontSize: 14,
                   fontWeight: 600,
@@ -686,7 +547,6 @@ function Progress() {
               </h2>
 
               <span
-                className="knl-see-all"
                 style={{
                   fontSize: 12,
                   color: "#0D9488",
@@ -711,9 +571,8 @@ function Progress() {
                   />
 
                   <div style={{ flex: 1 }}>
-                      <p
-                        className="knl-meal-name"
-                        style={{
+                    <p
+                      style={{
                         fontSize: 13,
                         fontWeight: 500,
                         color: "#111827",
@@ -724,7 +583,6 @@ function Progress() {
                     </p>
 
                     <p
-                      className="knl-meal-meta"
                       style={{
                         fontSize: 11,
                         color: "#9CA3AF",
@@ -736,7 +594,6 @@ function Progress() {
                   </div>
 
                   <span
-                    className="knl-meal-time"
                     style={{
                       fontSize: 11,
                       color: "#9CA3AF",
@@ -794,7 +651,6 @@ function Progress() {
                 return (
                   <div
                     key={tab.key}
-                    onClick={() => navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : tab.key === "scan" ? "/scan" : "/progress")}
                     style={{
                       width: 52,
                       height: 52,
@@ -815,15 +671,9 @@ function Progress() {
               }
 
               return (
-                  <div
-                    key={tab.key}
-                    className={`knl-nav-item ${tab.active ? "knl-nav-item-active" : ""}`}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={tab.label}
-                    onClick={() => navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : "/progress")}
-                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : "/progress"); }}
-                    style={{
+                <div
+                  key={tab.key}
+                  style={{
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -832,14 +682,20 @@ function Progress() {
                 >
                   <Icon
                     size={20}
-                    color={tab.active ? "#079879" : "#7B8B86"}
+                    color={
+                      tab.active
+                        ? "#0D9488"
+                        : "#9CA3AF"
+                    }
                   />
 
                   <span
                     style={{
                       fontSize: 10,
                       fontWeight: tab.active ? 600 : 400,
-                      color: tab.active ? "#079879" : "#65756F",
+                      color: tab.active
+                        ? "#0D9488"
+                        : "#9CA3AF",
                     }}
                   >
                     {tab.label}

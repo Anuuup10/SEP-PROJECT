@@ -7,13 +7,13 @@ import { Scan } from './pages/Scan';
 import { Dashboard } from './pages/Dashboard';
 import { Goals } from './pages/Goals';
 import SplashPage from './pages/SplashPage';
+import Setting from './pages/Setting';
+import Progress from './pages/Progress';
 import FoodAnalysisResult from './pages/FoodAnalysisResult';
 import { sampleResult } from "./pages/FoodAnalysisResult.example";
 import ItemDetails from './pages/ItemDetails';
 import Login from './pages/Login';
-import Progress from './pages/Progress';
-import History from './pages/History';
-import Setting from './pages/Setting';
+import History from "./pages/History";
 
 function ResultRoute() {
   const location = useLocation();
@@ -39,8 +39,26 @@ function ItemDetailsRoute() {
 
 export function App() {
   return (
+    <>
+      <Setting/>    
+    </>
+    // <AuthProvider>
+    //   <BrowserRouter>
+    //   <SplashPage />
+    //     {/* <MainLayout>
+    //       <Routes>
+    //         <Route path="/" element={<Home />} />
+    //         <Route path="/scan" element={<Scan />} />
+    //         <Route path="/dashboard" element={<Dashboard />} />
+    //       </Routes>
+    //     </MainLayout> */}
+    //   </BrowserRouter>
+    // </AuthProvider>
     <AuthProvider>
       <BrowserRouter>
+      {/* <SplashPage /> */}
+      <Progress/>
+      {/* < SplashPage /> */}
         <Routes>
           <Route path="/" element={<SplashPage />} />
           <Route path="/onboarding" element={<SplashPage />} />
@@ -60,6 +78,34 @@ export function App() {
           <Route path="/profile" element={<Setting />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+      {selectedItem ? (
+        <ItemDetails
+          item={selectedItem}
+          onBack={() => setSelectedItem(null)}
+        />
+      ) : (
+        <>
+          <SplashPage />
+          <FoodAnalysisResult
+            result={sampleResult}
+            onBack={() => console.log("back pressed")}
+            onToggleFavorite={(id) => console.log("toggled favorite for", id)}
+            onViewDetails={(r) => console.log("view details for", r)}
+            onSelectItem={setSelectedItem}
+          />
+        </>
+      )}
+      <SplashPage />
+    <Login />
+    <History />
+      
+        {/* <MainLayout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/scan" element={<Scan />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Routes>
+        </MainLayout> */}
       </BrowserRouter>
     </AuthProvider>
   );

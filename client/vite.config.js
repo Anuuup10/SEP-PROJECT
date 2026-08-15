@@ -1,11 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import basicSsl from '@vitejs/plugin-basic-ssl';
-
-const useHttps = process.env.VITE_HTTPS === 'true' || process.argv.includes('--https');
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  plugins: [react(), ...(useHttps ? [basicSsl({ domains: ['localhost', '192.168.1.64'] })] : [])],
+  plugins: [react(), tailwindcss()],
   server: {
     host: true, // exposes the server on your local network so it's reachable from your phone
     port: 5173,
