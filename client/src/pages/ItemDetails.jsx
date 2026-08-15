@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ChevronLeft, Heart } from "lucide-react";
+import React from "react";
+import { ChevronLeft } from "lucide-react";
 
 const defaultItem = {
   name: "Grilled Chicken",
@@ -15,8 +15,6 @@ const defaultItem = {
 };
 
 export default function ItemDetails({ item = defaultItem, onBack }) {
-  const [isLiked, setIsLiked] = useState(!!item.isFavorite);
-
   const {
     name = defaultItem.name,
     portion = defaultItem.portion,
@@ -43,7 +41,7 @@ export default function ItemDetails({ item = defaultItem, onBack }) {
   return (
     <div className="item-details-page">
       <div className="item-details-card">
-        <div className="item-details-nav">
+        <div className="item-details-nav result-header">
           <button
             className="item-details-icon-btn"
             onClick={onBack}
@@ -51,20 +49,8 @@ export default function ItemDetails({ item = defaultItem, onBack }) {
           >
             <ChevronLeft size={20} strokeWidth={2.4} />
           </button>
-
-          <button
-            className="item-details-icon-btn"
-            onClick={() => setIsLiked((current) => !current)}
-            aria-label="Favorite item"
-            aria-pressed={isLiked}
-          >
-            <Heart
-              size={20}
-              strokeWidth={2.2}
-              color={isLiked ? "#51a48c" : "#3b8770"}
-              fill={isLiked ? "#51a48c" : "none"}
-            />
-          </button>
+          <div className="result-header-title"><small>KHANALENS</small><strong>Food Details</strong></div>
+          <span className="item-details-nav-spacer" aria-hidden="true" />
         </div>
 
         <div className="item-details-hero">
@@ -123,8 +109,6 @@ export default function ItemDetails({ item = defaultItem, onBack }) {
             ))}
           </div>
         </section>
-
-        <button className="item-details-edit-btn">Edit Portion</button>
       </div>
     </div>
   );

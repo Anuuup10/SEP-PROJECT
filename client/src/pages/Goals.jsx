@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  Bell,
   ChevronDown,
   Flame,
   Home,
@@ -12,7 +11,6 @@ import {
   CircleUserRound,
   TrendingUp,
 } from 'lucide-react';
-import khanaLensLogo from '../assets/images/KhanaLens.jpg';
 
 const progressData = {
   kcal: {
@@ -122,26 +120,18 @@ export const Goals = () => {
     <div className="goals-viewport">
       <main className="goals-page">
         <div className={`goals-sticky-header ${headerScrolled ? 'scrolled' : ''}`}>
-        <div className="goals-brandbar">
-          <Link to="/home" className="goals-brand" aria-label="KhanaLens home">
-            <span className="goals-brand-mark"><img src={khanaLensLogo} alt="" /></span>
-            <span className="goals-brand-copy"><strong>Khana<span>Lens</span></strong><small>Scan. Analyze. Eat Smarter.</small></span>
-          </Link>
-          <div className="goals-header-actions">
-            <button className="goals-icon-button" aria-label="Notifications"><Bell size={19} /></button>
-            <Link to="/profile" className="goals-avatar" aria-label="Open profile">AS</Link>
-          </div>
-        </div>
-        <header className="goals-topbar">
-          <Link to="/home" className="goals-back" aria-label="Back to home"><ArrowLeft size={20} /></Link>
-          <div><span className="eyebrow">YOUR JOURNEY</span><h1>Goal Progress</h1></div>
-          <div className="period-picker">
-            <button className="period-button" onClick={() => setPeriodOpen((open) => !open)} aria-expanded={periodOpen} aria-haspopup="listbox">{periodOptions.find((option) => option.id === period).label} <ChevronDown size={15} /></button>
-            {periodOpen && <div className="period-menu" role="listbox" aria-label="Progress period">
-              {periodOptions.map((option) => <button key={option.id} className={period === option.id ? 'active' : ''} onClick={() => { setPeriod(option.id); setSelectedIndex(periodData[metric][option.id].values.length - 1); setPeriodOpen(false); }} role="option" aria-selected={period === option.id}>{option.label}</button>)}
-            </div>}
-          </div>
-        </header>
+          <header className="goals-topbar">
+            <Link to="/progress" className="goals-back" aria-label="Back to Today's Nutrition"><ArrowLeft size={20} /></Link>
+            <div><span className="eyebrow">YOUR JOURNEY</span><h1>Goal Progress</h1></div>
+            <div className="period-picker">
+              <button className="period-button" onClick={() => setPeriodOpen((open) => !open)} aria-expanded={periodOpen} aria-haspopup="listbox">
+                {periodOptions.find((option) => option.id === period).label} <ChevronDown size={15} />
+              </button>
+              {periodOpen && <div className="period-menu" role="listbox" aria-label="Progress period">
+                {periodOptions.map((option) => <button key={option.id} className={period === option.id ? 'active' : ''} onClick={() => { setPeriod(option.id); setSelectedIndex(periodData[metric][option.id].values.length - 1); setPeriodOpen(false); }} role="option" aria-selected={period === option.id}>{option.label}</button>)}
+              </div>}
+            </div>
+          </header>
         </div>
 
         <section className="goal-card progress-card">

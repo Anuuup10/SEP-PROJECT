@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,11 +11,29 @@ import {
   History,
   User,
 } from "lucide-react";
+import { getTrackedMeals } from "../services/tracker";
 
 function Progress() {
+  const navigate = useNavigate();
+  const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals());
+  useEffect(() => {
+    const syncTrackedMeals = () => setTrackedMeals(getTrackedMeals());
+    window.addEventListener("nutrilens-tracker-updated", syncTrackedMeals);
+    window.addEventListener("storage", syncTrackedMeals);
+    return () => {
+      window.removeEventListener("nutrilens-tracker-updated", syncTrackedMeals);
+      window.removeEventListener("storage", syncTrackedMeals);
+    };
+  }, []);
+  const trackedTotals = trackedMeals.reduce((totals, meal) => ({
+    calories: totals.calories + Number(meal.calories || 0),
+    protein: totals.protein + Number(meal.protein || 0),
+    carbs: totals.carbs + Number(meal.carbs || 0),
+    fat: totals.fat + Number(meal.fats ?? meal.fat ?? 0),
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
   // Calorie data
   const calorieData = {
-    consumed: 1650,
+    consumed: 1650 + trackedTotals.calories,
     goal: 2200,
   };
 
@@ -29,21 +48,21 @@ function Progress() {
   const nutrients = [
     {
       label: "Protein",
-      value: 95,
+      value: 95 + trackedTotals.protein,
       goal: 140,
       unit: "g",
       color: "#14B8A6",
     },
     {
       label: "Carbohydrates",
-      value: 180,
+      value: 180 + trackedTotals.carbs,
       goal: 250,
       unit: "g",
       color: "#F59E0B",
     },
     {
       label: "Fat",
-      value: 52,
+      value: 52 + trackedTotals.fat,
       goal: 70,
       unit: "g",
       color: "#8B5CF6",
@@ -97,8 +116,14 @@ function Progress() {
     },
   ];
 
-  // Calendar dropdown
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setHeaderScrolled(window.scrollY > 18);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Progress ring animation
   const [ringProgress, setRingProgress] = useState(0);
@@ -135,7 +160,7 @@ function Progress() {
         }
 
         .knl-page-bg {
-          background: #F3F4F6;
+          background: linear-gradient(180deg, #EAF7F3 0%, #F5FAF8 46%, #EEF6F3 100%);
           min-height: 100vh;
           width: 100%;
           display: flex;
@@ -145,10 +170,81 @@ function Progress() {
         }
 
         .knl-progress-card {
-          background: #FFFFFF;
+          background: #FCFFFE;
           border-radius: 24px;
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
           height: fit-content;
+        }
+
+        .knl-sticky-shell {
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          margin: -24px -20px 14px;
+          padding: 12px 20px 8px;
+          background: rgba(255,255,255,.96);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid #E8F1EE;
+          box-shadow: 0 3px 16px rgba(44, 106, 87, .04);
+          transition: padding .28s ease, box-shadow .28s ease;
+        }
+
+        .knl-sticky-shell.scrolled { padding-top: 7px; padding-bottom: 6px; box-shadow: 0 8px 22px rgba(44, 106, 87, .10); }
+        .knl-progress-heading { min-height: 42px; padding: 8px 0 2px; background: transparent; transition: padding .28s ease, transform .28s ease; }
+        .knl-sticky-shell.scrolled .knl-progress-heading { padding-top: 4px; transform: scale(.96); transform-origin: center top; }
+
+        .knl-nav-item {
+          min-width: 52px;
+          padding: 5px 7px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: background .2s ease, color .2s ease, transform .2s ease;
+        }
+
+        .knl-nav-item:hover { background: #ECF8F4; }
+        .knl-nav-item:active { transform: scale(.95); }
+        .knl-nav-item-active { background: #E5F7F1; }
+
+        .knl-summary-card, .knl-nutrients-card, .knl-meals-card { border: 1px solid #D9EEE7; border-radius: 20px; background: #FFFFFF; box-shadow: 0 10px 24px rgba(44, 106, 87, .08); animation: knl-rise .5s ease both; }
+        .knl-summary-card { padding: 18px 12px 8px; animation-delay: .05s; background: linear-gradient(145deg, #FFFFFF 0%, #F2FBF8 100%); border-top: 3px solid #2AB594; }
+        .knl-nutrients-card { margin-top: 14px; padding: 16px 14px 4px; animation-delay: .12s; background: #FBFFFD; border-top: 3px solid #2AB594; }
+        .knl-meals-card { margin-top: 14px; padding: 14px 12px 4px; animation-delay: .2s; background: #FFFFFF; border-top: 3px solid #F0A928; }
+        .knl-nutrient-row { animation: knl-rise .45s ease both; }
+        .knl-progress-fill { animation: knl-fill 1.45s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--row-index) * 70ms); }
+        .knl-meals-card .knl-meal-card {
+          position: relative;
+          margin: 8px 0;
+          border: 1px solid #EAF1EF;
+          border-radius: 15px;
+          background: #FBFEFD;
+          cursor: pointer;
+          transition: transform .24s cubic-bezier(.22,1,.36,1), box-shadow .24s ease, border-color .24s ease, background .24s ease;
+        }
+        .knl-meals-card .knl-meal-card:hover,
+        .knl-meals-card .knl-meal-card:focus-within {
+          transform: translateY(-5px) scale(1.015);
+          border-color: #4EC19F;
+          background: #ECFAF5;
+          box-shadow: 0 14px 28px rgba(31, 145, 113, .20);
+        }
+        .knl-meals-card .knl-meal-card:active { transform: scale(.985); background: #E7F8F1; }
+        .knl-meals-card .knl-meal-arrow { display: flex; align-items: center; color: #159979; }
+        .knl-meals-card .knl-meal-image { box-shadow: 0 3px 9px rgba(31, 75, 61, .14); transition: transform .24s cubic-bezier(.22,1,.36,1); }
+        .knl-meals-card .knl-meal-card:hover .knl-meal-image,
+        .knl-meals-card .knl-meal-card:focus-within .knl-meal-image { transform: scale(1.06); }
+        .knl-nutrient-label { color: #245149 !important; font-weight: 650 !important; }
+        .knl-nutrient-value { color: #173B34 !important; font-weight: 750 !important; }
+        .knl-meals-title { color: #173B34 !important; font-size: 16px !important; font-weight: 750 !important; }
+        .knl-see-all { color: #0A9A78 !important; font-weight: 750 !important; }
+        .knl-meal-name { color: #1B4038 !important; font-weight: 750 !important; }
+        .knl-meal-meta { color: #718E86 !important; }
+        .knl-meal-time { color: #5D7E75 !important; font-weight: 650 !important; }
+        @keyframes knl-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes knl-fill {
+          0% { width: 0; }
+          52% { width: 100%; }
+          68% { width: 100%; }
+          100% { width: var(--target-width); }
         }
 
         /* Meal list - NO scrollbar */
@@ -275,38 +371,29 @@ function Progress() {
             position: "relative",
           }}
         >
-          {/* Header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <ChevronLeft size={22} color="#1F2937" />
-
-            <h1
-              style={{
-                fontSize: 15,
-                fontWeight: 600,
-                color: "#111827",
-                margin: 0,
-              }}
+          <div className={`knl-sticky-shell ${headerScrolled ? "scrolled" : ""}`}>
+            <div
+              className="knl-progress-heading"
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
             >
-              Today's Nutrition
-            </h1>
-
-            <button
-              onClick={() => setCalendarOpen((open) => !open)}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 4,
-                cursor: "pointer",
-              }}
-            >
-              <Calendar size={18} color="#6B7280" />
-            </button>
+              <button
+                type="button"
+                onClick={() => navigate("/home")}
+                aria-label="Back to dashboard"
+                style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex" }}
+              >
+                <ChevronLeft size={22} color="#1F2937" />
+              </button>
+              <h1 style={{ fontSize: 17, fontWeight: 750, color: "#111827", margin: 0 }}>
+                Today's Nutrition
+              </h1>
+              <button
+                onClick={() => { setCalendarOpen((open) => !open); navigate("/progress/goals"); }}
+                style={{ background: "none", border: "none", padding: 4, cursor: "pointer" }}
+              >
+                <Calendar size={18} color="#6B7280" />
+              </button>
+            </div>
           </div>
 
           {/* Date */}
@@ -321,36 +408,15 @@ function Progress() {
             14 May 2024
           </p>
 
-          {/* Calendar dropdown */}
           {calendarOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: 44,
-                right: 20,
-                background: "#FFFFFF",
-                border: "1px solid #F1F1F1",
-                borderRadius: 12,
-                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
-                overflow: "hidden",
-                zIndex: 10,
-              }}
-            >
-              <div
-                style={{
-                  padding: "10px 18px",
-                  fontSize: 13,
-                  color: "#111827",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                This Week
-              </div>
+            <div style={{ position: "absolute", top: 44, right: 20, background: "#FFFFFF", border: "1px solid #F1F1F1", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", zIndex: 10 }}>
+              <div style={{ padding: "10px 18px", fontSize: 13, color: "#111827", whiteSpace: "nowrap" }}>This Week</div>
             </div>
           )}
 
           {/* Calorie Progress Circle */}
           <div
+            className="knl-summary-card"
             style={{
               display: "flex",
               justifyContent: "center",
@@ -450,8 +516,8 @@ function Progress() {
           </div>
 
           {/* Nutrients */}
-          <div>
-            {nutrients.map((n) => {
+          <div className="knl-nutrients-card">
+            {nutrients.map((n, index) => {
               const nPct = Math.min(
                 (n.value / n.goal) * 100,
                 100
@@ -460,6 +526,7 @@ function Progress() {
               return (
                 <div
                   key={n.label}
+                  className="knl-nutrient-row"
                   style={{
                     marginBottom: 14,
                   }}
@@ -472,6 +539,7 @@ function Progress() {
                     }}
                   >
                     <span
+                      className="knl-nutrient-label"
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -490,6 +558,7 @@ function Progress() {
                     </span>
 
                     <span
+                      className="knl-nutrient-value"
                       style={{
                         fontSize: 13,
                         fontWeight: 500,
@@ -512,8 +581,11 @@ function Progress() {
                     }}
                   >
                     <div
+                      className="knl-progress-fill"
                       style={{
-                        width: `${nPct}%`,
+                        width: "100%",
+                        "--target-width": `${nPct}%`,
+                        "--row-index": index,
                         height: "100%",
                         background: n.color,
                         borderRadius: 999,
@@ -526,7 +598,7 @@ function Progress() {
           </div>
 
           {/* Today's Meals */}
-          <div style={{ marginTop: 20 }}>
+          <div className="knl-meals-card">
             <div
               style={{
                 display: "flex",
@@ -536,6 +608,7 @@ function Progress() {
               }}
             >
               <h2
+                className="knl-meals-title"
                 style={{
                   fontSize: 14,
                   fontWeight: 600,
@@ -547,6 +620,7 @@ function Progress() {
               </h2>
 
               <span
+                className="knl-see-all"
                 style={{
                   fontSize: 12,
                   color: "#0D9488",
@@ -571,8 +645,9 @@ function Progress() {
                   />
 
                   <div style={{ flex: 1 }}>
-                    <p
-                      style={{
+                      <p
+                        className="knl-meal-name"
+                        style={{
                         fontSize: 13,
                         fontWeight: 500,
                         color: "#111827",
@@ -583,6 +658,7 @@ function Progress() {
                     </p>
 
                     <p
+                      className="knl-meal-meta"
                       style={{
                         fontSize: 11,
                         color: "#9CA3AF",
@@ -594,6 +670,7 @@ function Progress() {
                   </div>
 
                   <span
+                    className="knl-meal-time"
                     style={{
                       fontSize: 11,
                       color: "#9CA3AF",
@@ -615,7 +692,14 @@ function Progress() {
           </div>
 
           {/* Bottom Navigation */}
-          <div className="knl-bottom-nav">
+          <nav className="dashboard-nav" aria-label="Main navigation">
+            <Link to="/home"><Home size={18} /><span>Home</span></Link>
+            <Link className="active" to="/progress"><LayoutGrid size={18} /><span>Progress</span></Link>
+            <Link className="scan-nav" to="/scan"><span><ScanLine size={24} /><b aria-hidden="true">✦</b></span><small>Scan</small></Link>
+            <Link to="/history"><History size={18} /><span>History</span></Link>
+            <Link to="/profile"><User size={19} /><span>Profile</span></Link>
+          </nav>
+          <div className="knl-bottom-nav" style={{ display: "none" }}>
             {[
               {
                 key: "home",
@@ -651,6 +735,7 @@ function Progress() {
                 return (
                   <div
                     key={tab.key}
+                    onClick={() => navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : tab.key === "scan" ? "/scan" : "/progress")}
                     style={{
                       width: 52,
                       height: 52,
@@ -671,9 +756,15 @@ function Progress() {
               }
 
               return (
-                <div
-                  key={tab.key}
-                  style={{
+                  <div
+                    key={tab.key}
+                    className={`knl-nav-item ${tab.active ? "knl-nav-item-active" : ""}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={tab.label}
+                    onClick={() => navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : "/progress")}
+                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : "/progress"); }}
+                    style={{
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -682,20 +773,14 @@ function Progress() {
                 >
                   <Icon
                     size={20}
-                    color={
-                      tab.active
-                        ? "#0D9488"
-                        : "#9CA3AF"
-                    }
+                    color={tab.active ? "#079879" : "#7B8B86"}
                   />
 
                   <span
                     style={{
                       fontSize: 10,
                       fontWeight: tab.active ? 600 : 400,
-                      color: tab.active
-                        ? "#0D9488"
-                        : "#9CA3AF",
+                      color: tab.active ? "#079879" : "#65756F",
                     }}
                   >
                     {tab.label}

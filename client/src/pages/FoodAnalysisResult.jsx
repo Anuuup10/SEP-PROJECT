@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { addTrackedMeal } from "../services/tracker";
 
 /**
  * FoodAnalysisResult — Page 7: shows the result of a completed food scan.
@@ -27,8 +28,14 @@ export default function FoodAnalysisResult({
   onToggleFavorite,
   onViewDetails,
   onSelectItem,
+  onRescan,
 }) {
   const [localFavorite, setLocalFavorite] = useState(!!result?.isFavorite);
+  const [savedToHistory, setSavedToHistory] = useState(false);
+  const [tracked, setTracked] = useState(false);
+  const [removedItemIds, setRemovedItemIds] = useState([]);
+  const [removalCandidate, setRemovalCandidate] = useState(null);
+  const [trackerConfirmationOpen, setTrackerConfirmationOpen] = useState(false);
 
   if (!result) {
     return (
@@ -56,8 +63,68 @@ export default function FoodAnalysisResult({
     onToggleFavorite?.(result.id);
   };
 
+  const handleSaveToHistory = () => setSavedToHistory((prev) => !prev);
+  const activeItems = detectedItems.filter((item) => !removedItemIds.includes(item.id));
+  const removedNutrition = detectedItems.filter((item) => removedItemIds.includes(item.id)).reduce((totals, item) => ({ kcal: totals.kcal + (item.kcal || 0), protein: totals.protein + (item.protein || 0), carbs: totals.carbs + (item.carbs || 0), fats: totals.fats + (item.fat || 0) }), { kcal: 0, protein: 0, carbs: 0, fats: 0 });
+  const adjustedNutrition = { totalKcal: Math.max(0, totalKcal - removedNutrition.kcal), protein: Math.max(0, protein - removedNutrition.protein), carbs: Math.max(0, carbs - removedNutrition.carbs), fats: Math.max(0, fats - removedNutrition.fats) };
+  const handleRemoveItem = (event, itemId, itemName) => {
+    event.stopPropagation();
+    setRemovalCandidate({ id: itemId, name: itemName });
+  };
+  const confirmRemoveItem = () => {
+    if (!removalCandidate) return;
+    setRemovedItemIds((current) => [...current, removalCandidate.id]);
+    setRemovalCandidate(null);
+  };
+  const handleAddToTracker = () => {
+    if (tracked || activeItems.length === 0) return;
+    setTrackerConfirmationOpen(true);
+  };
+  const confirmAddToTracker = () => {
+    addTrackedMeal({ mealName, itemCount: activeItems.length, calories: adjustedNutrition.totalKcal, protein: adjustedNutrition.protein, carbs: adjustedNutrition.carbs, fats: adjustedNutrition.fats, createdAt: "Just now", food: "meal", items: activeItems });
+    setTracked(true);
+    setTrackerConfirmationOpen(false);
+  };
+
   return (
     <div className="result-page">
+      {removalCandidate && (
+        <div className="remove-item-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setRemovalCandidate(null); }}>
+          <section className="remove-item-dialog" role="alertdialog" aria-modal="true" aria-labelledby="remove-item-title" aria-describedby="remove-item-description">
+            <div className="remove-item-dialog-icon">−</div>
+            <div className="remove-item-dialog-copy">
+              <span>REMOVE DETECTED FOOD</span>
+              <h2 id="remove-item-title">Remove {removalCandidate.name}?</h2>
+              <p id="remove-item-description">This food will be removed from the scan and its nutrients will be deducted from the totals.</p>
+            </div>
+            <div className="remove-item-dialog-actions">
+              <button type="button" className="remove-item-cancel" onClick={() => setRemovalCandidate(null)}>Cancel</button>
+              <button type="button" className="remove-item-confirm" onClick={confirmRemoveItem}>Remove item</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {trackerConfirmationOpen && (
+        <div className="tracker-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setTrackerConfirmationOpen(false); }}>
+          <section className="tracker-dialog" role="alertdialog" aria-modal="true" aria-labelledby="tracker-dialog-title" aria-describedby="tracker-dialog-description">
+            <div className="tracker-dialog-icon">✓</div>
+            <div className="tracker-dialog-copy">
+              <span>READY TO TRACK</span>
+              <h2 id="tracker-dialog-title">Add {mealName}?</h2>
+              <p id="tracker-dialog-description">This meal will be added to your dashboard, history, and progress totals.</p>
+            </div>
+            <div className="tracker-dialog-summary">
+              <span><strong>{adjustedNutrition.totalKcal}</strong> kcal</span>
+              <span><strong>{adjustedNutrition.protein}g</strong> protein</span>
+              <span><strong>{activeItems.length}</strong> items</span>
+            </div>
+            <div className="tracker-dialog-actions">
+              <button type="button" className="tracker-dialog-cancel" onClick={() => setTrackerConfirmationOpen(false)}>Cancel</button>
+              <button type="button" className="tracker-dialog-confirm" onClick={confirmAddToTracker}>Add to tracker</button>
+            </div>
+          </section>
+        </div>
+      )}
       <div className="result-card">
         {/* Header */}
         <div className="result-header">
@@ -67,19 +134,11 @@ export default function FoodAnalysisResult({
             </svg>
           </button>
 
-          <button
-            onClick={handleFavoriteClick}
-            aria-label={localFavorite ? "Remove from favorites" : "Add to favorites"}
-            aria-pressed={localFavorite}
-            className="icon-btn"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill={localFavorite ? "#2F9E8F" : "none"}>
-              <path
-                d="M12 21s-6.7-4.3-9.3-8.2C.8 9.9 1.7 6.4 4.6 5.1c2.2-1 4.6-.2 5.9 1.6.4.5.8 1 1.5 1 .7 0 1.1-.5 1.5-1 1.3-1.8 3.7-2.6 5.9-1.6 2.9 1.3 3.8 4.8 1.9 7.7C18.7 16.7 12 21 12 21z"
-                stroke="#2F9E8F"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-              />
+          <div className="result-header-title"><small>KHANALENS</small><strong>Scan Result</strong></div>
+
+          <button onClick={handleSaveToHistory} aria-label={savedToHistory ? "Remove from history" : "Save to history"} aria-pressed={savedToHistory} className={`icon-btn ${savedToHistory ? "icon-btn-saved" : ""}`}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={savedToHistory ? "#168363" : "none"}>
+              <path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-3.6L6 21V4.8Z" stroke="#168363" strokeWidth="1.8" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
@@ -97,13 +156,13 @@ export default function FoodAnalysisResult({
 
         {/* Macro summary row */}
         <div className="macro-row">
-          <div className="macro-total">
-            <div className="macro-total-value">{totalKcal}</div>
+          <div className="macro-total macro-total-calories">
+            <div className="macro-total-value">{adjustedNutrition.totalKcal}</div>
             <div className="macro-total-label">Total kcal</div>
           </div>
-          <MacroStat label="Protein" value={`${protein}g`} colorClass="macro-stat-value--protein" />
-          <MacroStat label="Carbs" value={`${carbs}g`} colorClass="macro-stat-value--carbs" />
-          <MacroStat label="Fats" value={`${fats}g`} colorClass="macro-stat-value--fats" />
+          <MacroStat label="Protein" value={`${adjustedNutrition.protein}g`} colorClass="macro-stat-value--protein" />
+          <MacroStat label="Carbs" value={`${adjustedNutrition.carbs}g`} colorClass="macro-stat-value--carbs" />
+          <MacroStat label="Fats" value={`${adjustedNutrition.fats}g`} colorClass="macro-stat-value--fats" />
         </div>
 
         {/* Detected items */}
@@ -112,10 +171,10 @@ export default function FoodAnalysisResult({
 
           <div
             className={`detected-items-list ${
-              detectedItems.length > 3 ? "detected-items-list--scrollable" : ""
+              activeItems.length > 3 ? "detected-items-list--scrollable" : ""
             }`}
           >
-            {detectedItems.map((item) => (
+            {activeItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => onSelectItem?.(item)}
@@ -130,6 +189,7 @@ export default function FoodAnalysisResult({
                     {item.portion} &middot; {item.kcal} kcal
                   </div>
                 </div>
+                <span className="detected-item-remove" role="button" tabIndex="0" aria-label={`Remove ${item.name}`} onClick={(event) => handleRemoveItem(event, item.id, item.name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") handleRemoveItem(event, item.id, item.name); }}>×</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="detected-item-chevron">
                   <path d="M9 6l6 6-6 6" stroke="#B7C4C0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -140,8 +200,9 @@ export default function FoodAnalysisResult({
 
         {/* View Details CTA */}
         <div className="view-details-wrapper">
-          <button onClick={() => onViewDetails?.(result)} className="view-details-btn">
-            View Details
+          <button onClick={handleAddToTracker} className={`add-tracker-btn ${tracked ? "added" : ""}`} type="button">{tracked ? "Added to Tracker" : "Add to Tracker"}</button>
+          <button onClick={() => onRescan?.()} className="view-details-btn">
+            Rescan Food
           </button>
         </div>
       </div>
@@ -151,7 +212,7 @@ export default function FoodAnalysisResult({
 
 function MacroStat({ label, value, colorClass }) {
   return (
-    <div className="macro-stat">
+    <div className={`macro-stat macro-stat-${label.toLowerCase()}`}>
       <div className={`macro-stat-value ${colorClass}`}>{value}</div>
       <div className="macro-stat-label">{label}</div>
     </div>

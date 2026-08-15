@@ -50,5 +50,44 @@ export const sampleResult = {
       image:
         "https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=200&auto=format&fit=crop",
     },
+    {
+      id: "item_4",
+      name: "Roasted Vegetables",
+      portion: "100g",
+      kcal: 86,
+      protein: 3,
+      carbs: 14,
+      fat: 2,
+      fiber: 5,
+      sodium: 95,
+      image:
+        "https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=200&auto=format&fit=crop",
+    },
+    {
+      id: "item_5",
+      name: "Yogurt Dressing",
+      portion: "45g",
+      kcal: 58,
+      protein: 2,
+      carbs: 4,
+      fat: 3,
+      fiber: 0,
+      sodium: 120,
+      image:
+        "https://images.unsplash.com/photo-1488477181946-6428a0291777?q=80&w=200&auto=format&fit=crop",
+    },
+    {
+      id: "item_6",
+      name: "Herb Garnish",
+      portion: "15g",
+      kcal: 12,
+      protein: 1,
+      carbs: 2,
+      fat: 0,
+      fiber: 1,
+      sodium: 18,
+      image:
+        "https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=200&auto=format&fit=crop",
+    },
   ],
 };

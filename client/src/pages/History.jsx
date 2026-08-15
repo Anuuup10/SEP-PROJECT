@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   Filter,
@@ -20,6 +21,10 @@ import {
   Flame,
   X,
 } from "lucide-react";
+import foodImageOne from "../assets/images/HealthyFood-1.jpg";
+import foodImageTwo from "../assets/images/HealthyFood-2.jpg";
+import foodImageThree from "../assets/images/Momo.jpg";
+import { getTrackedMeals } from "../services/tracker";
 
 /* =========================================================
    HISTORY DATA
@@ -193,6 +198,17 @@ const FOOD_STYLES = {
   },
 };
 
+const FOOD_IMAGES = {
+  chicken: foodImageOne,
+  veg: foodImageTwo,
+  egg: foodImageThree,
+  fish: foodImageOne,
+  dairy: foodImageThree,
+  beef: foodImageOne,
+  bread: foodImageTwo,
+  grain: foodImageTwo,
+};
+
 const TABS = [
   "All",
   "Breakfast",
@@ -210,17 +226,9 @@ function FoodIcon({ food, expanded }) {
   const Icon = style.icon;
 
   return (
-    <div
-      className={`food-icon ${expanded ? "food-icon-expanded" : ""}`}
-      style={{
-        backgroundColor: style.bg,
-      }}
-    >
-      <Icon
-        size={expanded ? 18 : 16}
-        strokeWidth={1.8}
-        color={style.color}
-      />
+    <div className={`food-icon ${expanded ? "food-icon-expanded" : ""}`} style={{ backgroundColor: style.bg }}>
+      <img className="food-image" src={FOOD_IMAGES[food] || foodImageTwo} alt={`${food} meal`} />
+      <Icon className="food-image-fallback" size={expanded ? 18 : 16} strokeWidth={1.8} color={style.color} aria-hidden="true" />
     </div>
   );
 }
@@ -230,6 +238,7 @@ function FoodIcon({ food, expanded }) {
 ========================================================= */
 
 function BottomNavigation() {
+  const navigate = useNavigate();
   const navItems = [
     {
       name: "Home",
@@ -268,7 +277,7 @@ function BottomNavigation() {
               item.isScan ? "nav-scan" : ""
             }`}
             aria-label={item.name}
-            onClick={() => console.log(item.name)}
+            onClick={() => navigate(item.name === "Home" ? "/home" : item.name === "Progress" ? "/progress" : item.name === "Scan" ? "/scan" : item.name === "Profile" ? "/profile" : "/history")}
           >
             {item.isScan ? (
               <span className="scan-button">
@@ -302,6 +311,18 @@ function BottomNavigation() {
   );
 }
 
+function SharedDashboardFooter() {
+  return (
+    <nav className="dashboard-nav" aria-label="Main navigation">
+      <Link to="/home"><Home size={18} /><span>Home</span></Link>
+      <Link to="/progress"><BarChart3 size={18} /><span>Progress</span></Link>
+      <Link className="scan-nav" to="/scan"><span><ScanLine size={24} /><b aria-hidden="true">✦</b></span><small>Scan</small></Link>
+      <Link className="active" to="/history"><HistoryIcon size={18} /><span>History</span></Link>
+      <Link to="/profile"><User size={19} /><span>Profile</span></Link>
+    </nav>
+  );
+}
+
 /* =========================================================
    HISTORY
 ========================================================= */
@@ -310,6 +331,9 @@ export default function History() {
   const [activeTab, setActiveTab] = useState("All");
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [filterPressed, setFilterPressed] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [dietFilter, setDietFilter] = useState("All");
+  const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals());
 
   const pageRef = useRef(null);
   const touchStartX = useRef(null);
@@ -320,14 +344,35 @@ export default function History() {
      FILTER
   ======================================================= */
 
-  const filteredData = HISTORY_DATA
+  const trackedGroup = trackedMeals.length ? [{
+    day: "Tracked meals",
+    meals: trackedMeals.map((meal) => ({
+      name: meal.mealName,
+      items: meal.itemCount || meal.items?.length || 1,
+      time: meal.createdAt || "Just now",
+      type: "Scanned",
+      food: meal.food || "veg",
+      calories: meal.calories || 0,
+      protein: `${meal.protein || 0}g`,
+      description: "Added from your food scan.",
+    })),
+  }] : [];
+
+  const filteredData = [...trackedGroup, ...HISTORY_DATA]
     .map((group) => {
-      const meals =
+      let meals =
         activeTab === "All"
           ? group.meals
           : group.meals.filter(
               (meal) => meal.type === activeTab
             );
+
+      if (dietFilter !== "All") {
+        meals = meals.filter((meal) => {
+          const isNonVeg = FOOD_STYLES[meal.food]?.nonVeg;
+          return dietFilter === "Non-Vegetarian" ? isNonVeg : !isNonVeg;
+        });
+      }
 
       return {
         ...group,
@@ -357,6 +402,16 @@ export default function History() {
   /* =======================================================
      SWIPE
   ======================================================= */
+
+  useEffect(() => {
+    const syncTrackedMeals = () => setTrackedMeals(getTrackedMeals());
+    window.addEventListener("nutrilens-tracker-updated", syncTrackedMeals);
+    window.addEventListener("storage", syncTrackedMeals);
+    return () => {
+      window.removeEventListener("nutrilens-tracker-updated", syncTrackedMeals);
+      window.removeEventListener("storage", syncTrackedMeals);
+    };
+  }, []);
 
   useEffect(() => {
     const page = pageRef.current;
@@ -512,9 +567,7 @@ export default function History() {
               />
             </button>
 
-            {/* intentionally no History title */}
-
-            <div className="header-spacer" />
+            <div className="history-title"><small>YOUR JOURNEY</small><h1>History</h1></div>
 
             <button
               type="button"
@@ -526,6 +579,7 @@ export default function History() {
               aria-label="Filter"
               onClick={() => {
                 setFilterPressed(true);
+                setFilterOpen((open) => !open);
 
                 setTimeout(() => {
                   setFilterPressed(false);
@@ -539,6 +593,8 @@ export default function History() {
             </button>
 
           </header>
+
+          {filterOpen && <div className="history-filter-panel"><div><strong>Filter meals</strong><button type="button" onClick={() => setFilterOpen(false)} aria-label="Close filters"><X size={15} /></button></div><p>Choose the type of meals to show.</p><div className="history-filter-options">{["All", "Vegetarian", "Non-Vegetarian"].map((option) => <button type="button" key={option} className={dietFilter === option ? "selected" : ""} onClick={() => { setDietFilter(option); setFilterOpen(false); setSelectedMeal(null); }}>{option}</button>)}</div></div>}
 
           {/* =================================================
               TABS
@@ -793,7 +849,7 @@ export default function History() {
           INSIDE HISTORY PAGE ONLY
       =================================================== */}
 
-      <BottomNavigation />
+      <SharedDashboardFooter />
 
       {/* ===================================================
           STYLES
@@ -1888,6 +1944,47 @@ export default function History() {
           }
         }
 
+    `}</style>
+      <style>{`
+        .history-page { background: linear-gradient(155deg, #dff7ed 0%, #f4fbf8 42%, #e9f6f1 100%); color: #173b32; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        .history-scroll { background: linear-gradient(180deg, rgba(251,255,253,.98), rgba(243,250,247,.98)); }
+        .history-container { padding-top: 18px; }
+        .history-container { padding-bottom: 124px; }
+        .history-header { min-height: 52px; margin-bottom: 16px; background: rgba(251,255,253,.9); border-bottom: 1px solid #dcefe7; }
+        .history-title { flex: 1; text-align: center; }
+        .history-title small { display: block; color: #5d9b86; font-size: 8px; font-weight: 850; letter-spacing: 1.8px; line-height: 1; }
+        .history-title h1 { margin-top: 5px; color: #123e32; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 23px; line-height: 1; font-weight: 900; letter-spacing: -.85px; }
+        .round-button { border: 1px solid #ccebdd; background: #eaf8f1; color: #227b61; box-shadow: 0 5px 12px rgba(38, 130, 94, .08); }
+        .round-button:hover, .filter-active { background: #d9f3e7; color: #147d60; }
+        .history-filter-panel { position: sticky; top: 52px; z-index: 19; margin: -7px 0 14px; padding: 13px; border: 1px solid #c6e7d7; border-radius: 16px; background: rgba(251,255,253,.98); box-shadow: 0 10px 22px rgba(38, 117, 87, .13); }
+        .history-filter-panel > div:first-child { display:flex; align-items:center; justify-content:space-between; }.history-filter-panel strong { color:#245b4a; font-size:12px; }.history-filter-panel > div:first-child button { display:grid; place-items:center; width:27px; height:27px; border:0; border-radius:9px; color:#5f8b7b; background:#eaf7f1; cursor:pointer; }.history-filter-panel p { margin-top:4px; color:#7a988c; font-size:10px; }.history-filter-options { display:flex; gap:6px; margin-top:10px; }.history-filter-options button { flex:1; padding:8px 6px; border:1px solid #d3ebe0; border-radius:10px; color:#6b8e80; background:#f4fbf7; font-size:10px; font-weight:800; cursor:pointer; }.history-filter-options button.selected { border-color:#168765; color:#fff; background:#168765; }
+        .category-area { position: sticky; top: 52px; z-index: 18; margin: 0 -2px 21px; padding: 8px 2px 13px; border-bottom: 1px solid #d5ebe1; background: rgba(244, 251, 248, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .category-tabs { display: flex; width: 100%; gap: 5px; padding: 5px; border: 1px solid #c4e5d6; border-radius: 16px; background: linear-gradient(135deg, #dff5e9, #eefaf5); box-shadow: 0 6px 14px rgba(38, 130, 94, .07); }
+        .category-tab { flex: 1 1 0; min-width: 0; padding: 8px 5px; border: 1px solid #d7ece2; border-radius: 11px; color: #668a7b; background: rgba(255,255,255,.72); font-size: 11px; font-weight: 800; text-align: center; white-space: nowrap; box-shadow: 0 2px 5px rgba(38, 107, 79, .04); }
+        .category-tab:hover { color: #237c61; background: #fafffc; border-color: #9dd8bc; }
+        .category-tab-active { color: #fff; border-color: #168765; background: linear-gradient(135deg, #27b88b, #087b61); box-shadow: 0 5px 12px rgba(25, 144, 103, .2); }
+        .day-section { margin-bottom: 20px; }
+        .day-title { display: flex; align-items: center; gap: 8px; margin: 0 0 9px 3px; color: #24614e; font-size: 13px; font-weight: 850; }
+        .day-title::after { content: ""; height: 1px; flex: 1; background: #d3ebe0; }
+        .meal-list { gap: 8px; }
+        .meal-card { border: 1px solid #cfe9dd; border-radius: 16px; background: linear-gradient(145deg, #fff, #f5fbf8); box-shadow: 0 8px 18px rgba(38, 117, 87, .08); }
+        .meal-card:hover { box-shadow: 0 11px 24px rgba(38, 117, 87, .14); }
+        .meal-main { min-height: 62px; padding: 9px 11px; gap: 10px; }
+        .food-icon { position: relative; width: 48px; height: 48px; min-width: 48px; overflow: hidden; border-radius: 14px; box-shadow: 0 5px 11px rgba(35, 82, 66, .14); }
+        .food-image { width: 100%; height: 100%; display: block; object-fit: cover; }
+        .food-image-fallback { display: none; position: absolute; inset: 0; margin: auto; }
+        .meal-name { color: #214c3e; font-size: 12px; font-weight: 850; }
+        .meal-items { color: #77968a; font-size: 10px; font-weight: 600; }
+        .meal-time { color: #5f8c7b; font-size: 10px; font-weight: 750; }
+        .meal-expanded { padding: 0 12px 12px; }
+        .expanded-divider { background: #dcefe7; }
+        .expanded-description { color: #6d8d80; font-size: 10px; line-height: 1.5; }
+        .stat-box { border: 1px solid #d9eee5; background: #effaf5; color: #26836a; }
+        .stat-box span { color: #7a9b8e; }.stat-box strong { color: #285d4c; }
+        .empty-history { min-height: 250px; border: 1px dashed #bcded0; border-radius: 20px; background: rgba(255,255,255,.65); color: #709387; }
+        .empty-icon { background: #dff5e9; color: #1a9975; }
+        .bottom-nav { height: 72px; border-top: 1px solid #dceee7; background: rgba(255,255,255,.96); box-shadow: 0 -8px 23px rgba(40,112,85,.1); }
+        .nav-item { color: #80958e; }.nav-icon-active, .nav-label-active { color: #168363; }.nav-label { font-size: 9px; font-weight: 700; }.scan-button { width: 52px; height: 52px; background: linear-gradient(145deg, #25ba8d, #087b61); box-shadow: 0 7px 16px rgba(17,137,99,.28); }
       `}</style>
     </div>
   );
