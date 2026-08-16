@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { addTrackedMeal } from "../services/tracker";
+import { saveMealApi } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 /**
  * FoodAnalysisResult — Page 7: shows the result of a completed food scan.
@@ -30,12 +32,15 @@ export default function FoodAnalysisResult({
   onSelectItem,
   onRescan,
 }) {
+  const { user } = useAuth();
   const [localFavorite, setLocalFavorite] = useState(!!result?.isFavorite);
   const [savedToHistory, setSavedToHistory] = useState(false);
   const [tracked, setTracked] = useState(false);
   const [removedItemIds, setRemovedItemIds] = useState([]);
   const [removalCandidate, setRemovalCandidate] = useState(null);
   const [trackerConfirmationOpen, setTrackerConfirmationOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   if (!result) {
     return (
@@ -57,16 +62,29 @@ export default function FoodAnalysisResult({
     fats,
     detectedItems = [],
   } = result;
+  const resultTotals = result.totals || {};
+  const displayProtein = Number(protein ?? resultTotals.protein ?? result.macros?.protein) || 0;
+  const displayCarbs = Number(carbs ?? resultTotals.carbohydrates ?? result.macros?.carbs) || 0;
+  const displayFats = Number(fats ?? resultTotals.fat ?? result.macros?.fat) || 0;
+  const displayCalories = Number(totalKcal ?? resultTotals.calories) || 0;
+  const displayItemCount = itemCount ?? detectedItems.length;
 
   const handleFavoriteClick = () => {
     setLocalFavorite((prev) => !prev);
     onToggleFavorite?.(result.id);
   };
 
-  const handleSaveToHistory = () => setSavedToHistory((prev) => !prev);
+  const handleSaveToHistory = async () => {
+    if (savedToHistory || saving) return;
+    if (!result.scanId) return setSaveError("This scan is missing its Firebase reference. Please scan it again.");
+    setSaving(true); setSaveError(null);
+    try { await saveMealApi(result.scanId); setSavedToHistory(true); }
+    catch (error) { setSaveError(error.response?.data?.message || "Could not save this meal"); }
+    finally { setSaving(false); }
+  };
   const activeItems = detectedItems.filter((item) => !removedItemIds.includes(item.id));
-  const removedNutrition = detectedItems.filter((item) => removedItemIds.includes(item.id)).reduce((totals, item) => ({ kcal: totals.kcal + (item.kcal || 0), protein: totals.protein + (item.protein || 0), carbs: totals.carbs + (item.carbs || 0), fats: totals.fats + (item.fat || 0) }), { kcal: 0, protein: 0, carbs: 0, fats: 0 });
-  const adjustedNutrition = { totalKcal: Math.max(0, totalKcal - removedNutrition.kcal), protein: Math.max(0, protein - removedNutrition.protein), carbs: Math.max(0, carbs - removedNutrition.carbs), fats: Math.max(0, fats - removedNutrition.fats) };
+  const removedNutrition = detectedItems.filter((item) => removedItemIds.includes(item.id)).reduce((totals, item) => ({ kcal: totals.kcal + (Number(item.kcal ?? item.calories) || 0), protein: totals.protein + (Number(item.protein) || 0), carbs: totals.carbs + (Number(item.carbs ?? item.carbohydrates) || 0), fats: totals.fats + (Number(item.fat) || 0) }), { kcal: 0, protein: 0, carbs: 0, fats: 0 });
+  const adjustedNutrition = { totalKcal: Math.max(0, displayCalories - removedNutrition.kcal), protein: Math.max(0, displayProtein - removedNutrition.protein), carbs: Math.max(0, displayCarbs - removedNutrition.carbs), fats: Math.max(0, displayFats - removedNutrition.fats) };
   const handleRemoveItem = (event, itemId, itemName) => {
     event.stopPropagation();
     setRemovalCandidate({ id: itemId, name: itemName });
@@ -81,7 +99,8 @@ export default function FoodAnalysisResult({
     setTrackerConfirmationOpen(true);
   };
   const confirmAddToTracker = () => {
-    addTrackedMeal({ mealName, itemCount: activeItems.length, calories: adjustedNutrition.totalKcal, protein: adjustedNutrition.protein, carbs: adjustedNutrition.carbs, fats: adjustedNutrition.fats, createdAt: "Just now", food: "meal", items: activeItems });
+    if (!savedToHistory) handleSaveToHistory();
+    addTrackedMeal({ mealName, itemCount: activeItems.length, calories: adjustedNutrition.totalKcal, protein: adjustedNutrition.protein, carbs: adjustedNutrition.carbs, fats: adjustedNutrition.fats, createdAt: "Just now", food: "meal", image: result.image || result.imageUrl || image, items: activeItems.map((item) => ({ ...item, image: item.image || result.image || result.imageUrl || image })) }, user?.id);
     setTracked(true);
     setTrackerConfirmationOpen(false);
   };
@@ -136,17 +155,18 @@ export default function FoodAnalysisResult({
 
           <div className="result-header-title"><small>KHANALENS</small><strong>Scan Result</strong></div>
 
-          <button onClick={handleSaveToHistory} aria-label={savedToHistory ? "Remove from history" : "Save to history"} aria-pressed={savedToHistory} className={`icon-btn ${savedToHistory ? "icon-btn-saved" : ""}`}>
+          <button onClick={handleSaveToHistory} aria-label={savedToHistory ? "Saved to history" : "Save to history"} aria-pressed={savedToHistory} className={`icon-btn ${savedToHistory ? "icon-btn-saved" : ""}`} disabled={saving}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill={savedToHistory ? "#168363" : "none"}>
               <path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-3.6L6 21V4.8Z" stroke="#168363" strokeWidth="1.8" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
+        {saveError && <p role="alert" className="scanner-error">{saveError}</p>}
 
         {/* Title */}
         <div className="result-titles">
           <h1 className="result-title">{mealName}</h1>
-          <p className="result-subtitle">{itemCount} food items detected</p>
+          <p className="result-subtitle">{displayItemCount} food items detected</p>
         </div>
 
         {/* Meal photo */}
@@ -177,11 +197,11 @@ export default function FoodAnalysisResult({
             {activeItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => onSelectItem?.(item)}
+                onClick={() => onSelectItem?.({ ...item, image: item.image || image })}
                 className="detected-item-row"
               >
                 <div className="detected-item-thumb">
-                  <img src={item.image} alt={item.name} />
+                  <img src={item.image || image} alt={item.name} />
                 </div>
                 <div className="detected-item-info">
                   <div className="detected-item-name">{item.name}</div>

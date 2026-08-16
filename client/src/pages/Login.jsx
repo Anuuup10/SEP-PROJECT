@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { firebaseSignIn, firebaseSignInWithGoogle, firebaseSignUp } from "../services/firebaseAuth";
 
 // ------------------------------------------------------------------
 // Fill these in once you've registered your apps. Until then, the
 // buttons show a friendly "not configured yet" message instead of
 // silently failing.
 // ------------------------------------------------------------------
-const GOOGLE_CLIENT_ID = "800498680115-a0gku0tn1mnlr7nja3109cl295h8jmso.apps.googleusercontent.com";
 const APPLE_CLIENT_ID = "YOUR_APPLE_SERVICES_ID";
 const APPLE_REDIRECT_URI = "https://yourapp.com/auth/apple/callback";
 
@@ -60,14 +60,10 @@ export default function Login({ initialSignup = false }) {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const googleReady = useRef(false);
   const appleReady = useRef(false);
 
   // Preload both SDKs in the background so the buttons respond instantly.
   useEffect(() => {
-    loadScript("https://accounts.google.com/gsi/client", "google-identity-script")
-      .then(() => (googleReady.current = true))
-      .catch(() => {});
     loadScript(
       "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js",
       "apple-id-script"
@@ -76,7 +72,7 @@ export default function Login({ initialSignup = false }) {
       .catch(() => {});
   }, []);
 
-  function handleLogin(event) {
+  async function handleLogin(event) {
     event.preventDefault();
     const nextErrors = {};
     if (!email) nextErrors.email = "Enter your email.";
@@ -85,14 +81,18 @@ export default function Login({ initialSignup = false }) {
     if (Object.keys(nextErrors).length > 0) return;
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      login("demo-token", { name: email.split("@")[0] || "Demo User", email });
+    try {
+      const response = await firebaseSignIn(email, password);
+      login(response.token, response.user);
       navigate("/home");
-    }, 1200);
+    } catch (error) {
+      setErrors({ form: error.message || "Unable to log in." });
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function handleSignup(event) {
+  async function handleSignup(event) {
     event.preventDefault();
     const nextErrors = {};
     if (!name) nextErrors.name = "Enter your name.";
@@ -103,15 +103,15 @@ export default function Login({ initialSignup = false }) {
     if (Object.keys(nextErrors).length > 0) return;
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      login("demo-token", { name, email: signupEmail });
-      setEmail(signupEmail);
-      setPassword("");
-      setSignupPassword("");
-      setIsSignup(false);
+    try {
+      const response = await firebaseSignUp(signupEmail, signupPassword, name);
+      login(response.token, response.user);
       navigate("/home");
-    }, 1200);
+    } catch (error) {
+      setErrors({ form: error.message || "Unable to create your account." });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleForgotPassword() {
@@ -123,38 +123,18 @@ export default function Login({ initialSignup = false }) {
   }
 
   // --- Google Sign-In ---
-  // Setup: create an OAuth Client ID at https://console.cloud.google.com/apis/credentials
-  // and paste it into GOOGLE_CLIENT_ID above. The script is preloaded on mount.
-  function handleGoogle() {
-    if (GOOGLE_CLIENT_ID === "YOUR_GOOGLE_CLIENT_ID") {
-      return;
+  async function handleGoogle() {
+    setErrors({});
+    setLoading(true);
+    try {
+      const response = await firebaseSignInWithGoogle();
+      login(response.token, response.user);
+      navigate("/home");
+    } catch (error) {
+      setErrors({ form: error.code === "auth/popup-closed-by-user" ? "Google sign-in was cancelled." : (error.message || "Unable to sign in with Google.") });
+    } finally {
+      setLoading(false);
     }
-    if (!(window.google && window.google.accounts && window.google.accounts.oauth2)) {
-      return;
-    }
-
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: "openid email profile",
-      callback: (tokenResponse) => {
-        if (tokenResponse.error) {
-          return;
-        }
-        // Send the access token to the backend. The backend verifies it
-        // with Google directly (see server/auth-google.js) before trusting it.
-        fetch("/api/auth/google", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken: tokenResponse.access_token }),
-        })
-          .then((res) => res.json())
-          .then(() => alert("Signed in with Google!"))
-          .catch(() => {});
-      },
-      error_callback: () => {},
-    });
-
-    client.requestAccessToken();
   }
 
   // --- Apple Sign-In ---
@@ -240,6 +220,7 @@ export default function Login({ initialSignup = false }) {
               <div>
                 <p style={styles.welcome}>Welcome back!</p>
                 <p style={styles.accountText}>Log in to your account</p>
+                {errors.form && !isSignup && <p style={styles.errorText}>{errors.form}</p>}
               </div>
 
               <form onSubmit={handleLogin} noValidate>
@@ -352,6 +333,7 @@ export default function Login({ initialSignup = false }) {
               </div>
 
               <form onSubmit={handleSignup} noValidate>
+                {errors.form && isSignup && <p style={styles.errorText}>{errors.form}</p>}
                 <label htmlFor="signup-name" style={styles.label}>Full name</label>
                 <input
                   id="signup-name"

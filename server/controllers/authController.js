@@ -1,12 +1,12 @@
-import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env.js';
+import { createUser, findUserByEmail } from '../services/firebaseService.js';
 
 export const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-    const existingUser = await User.findOne({ email });
+    const existingUser = await findUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
@@ -14,13 +14,13 @@ export const registerUser = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = await User.create({ name, email, password: hashedPassword });
-    const token = jwt.sign({ id: user._id }, config.jwtSecret, { expiresIn: '7d' });
+    const user = await createUser({ name, email, password: hashedPassword });
+    const token = jwt.sign({ id: user.id }, config.jwtSecret, { expiresIn: '7d' });
 
     res.status(201).json({
       success: true,
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user.id, name: user.name, email: user.email }
     });
   } catch (error) {
     next(error);
@@ -30,7 +30,7 @@ export const registerUser = async (req, res, next) => {
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await findUserByEmail(email);
     if (!user) {
       return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
@@ -40,12 +40,12 @@ export const loginUser = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user._id }, config.jwtSecret, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id }, config.jwtSecret, { expiresIn: '7d' });
 
     res.status(200).json({
       success: true,
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user.id, name: user.name, email: user.email }
     });
   } catch (error) {
     next(error);

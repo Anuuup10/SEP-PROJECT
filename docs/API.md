@@ -44,13 +44,20 @@ Input:
 
 - Food image
 
-Output should contain:
+Response contains `data` with:
 
-- Meal name
-- Detected food items
-- Estimated portions
-- Nutrition information
-- Confidence information where available
+- `isFood` and `mealName`
+- `items[]` with item name, portion, cooking method, nutrients, confidence, assumptions, and possible allergens
+- `totals` calculated by the server from the item values
+- `overallConfidence`, `insight`, and an estimate disclaimer
+- `image`, a compressed Base64 JPEG thumbnail stored with the Firestore scan
+
+Nutrition values are image-based estimates. Food scan thumbnails are compressed
+and stored in Firestore, so Firebase Storage is not required for food scanning.
+Original camera files are not persisted.
+
+Example item nutrients use calories in kcal, protein/carbohydrates/fat/fiber/
+sugar/saturated fat in grams, and sodium in milligrams.
 
 ---
 
@@ -63,6 +70,20 @@ POST /api/meals
 ### Get Meals
 
 GET /api/meals
+
+The implemented route is `GET /api/nutrition/history`.
+
+### Save Meal
+
+POST /api/nutrition/meals
+
+Body: `{ "scanId": "..." }`
+
+### Upload Profile Picture
+
+POST /api/uploads/profile-picture
+
+Multipart field: `image`
 
 ### Get Single Meal
 

@@ -12,19 +12,21 @@ import {
   User,
 } from "lucide-react";
 import { getTrackedMeals } from "../services/tracker";
+import { useAuth } from "../hooks/useAuth";
 
 function Progress() {
   const navigate = useNavigate();
-  const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals());
+  const { user } = useAuth();
+  const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals(user?.id));
   useEffect(() => {
-    const syncTrackedMeals = () => setTrackedMeals(getTrackedMeals());
+    const syncTrackedMeals = () => setTrackedMeals(getTrackedMeals(user?.id));
     window.addEventListener("nutrilens-tracker-updated", syncTrackedMeals);
     window.addEventListener("storage", syncTrackedMeals);
     return () => {
       window.removeEventListener("nutrilens-tracker-updated", syncTrackedMeals);
       window.removeEventListener("storage", syncTrackedMeals);
     };
-  }, []);
+  }, [user?.id]);
   const trackedTotals = trackedMeals.reduce((totals, meal) => ({
     calories: totals.calories + Number(meal.calories || 0),
     protein: totals.protein + Number(meal.protein || 0),
@@ -33,7 +35,7 @@ function Progress() {
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
   // Calorie data
   const calorieData = {
-    consumed: 1650 + trackedTotals.calories,
+    consumed: trackedTotals.calories,
     goal: 2200,
   };
 

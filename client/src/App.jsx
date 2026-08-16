@@ -8,7 +8,6 @@ import { Dashboard } from './pages/Dashboard';
 import { Goals } from './pages/Goals';
 import SplashPage from './pages/SplashPage';
 import FoodAnalysisResult from './pages/FoodAnalysisResult';
-import { sampleResult } from "./pages/FoodAnalysisResult.example";
 import ItemDetails from './pages/ItemDetails';
 import Login from './pages/Login';
 import Progress from './pages/Progress';
@@ -18,7 +17,7 @@ import Setting from './pages/Setting';
 function ResultRoute() {
   const location = useLocation();
   const navigate = useNavigate();
-  const result = location.state?.result || sampleResult;
+  const result = location.state?.result || null;
 
   return (
     <FoodAnalysisResult

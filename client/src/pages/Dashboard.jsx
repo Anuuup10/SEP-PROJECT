@@ -9,13 +9,7 @@ export const Dashboard = () => {
   useEffect(() => {
     getHistory()
       .then((res) => setLogs(res.data || []))
-      .catch(() => {
-        // Fallback demo data
-        setLogs([
-          { _id: '1', foodName: 'Grilled Chicken Salad', calories: 420, macros: { protein: 38, carbs: 12, fat: 18 }, healthScore: 92, insights: 'Excellent protein-rich lunch.' },
-          { _id: '2', foodName: 'Oatmeal & Berries', calories: 310, macros: { protein: 11, carbs: 54, fat: 6 }, healthScore: 88, insights: 'High fiber start to your day.' }
-        ]);
-      });
+      .catch(() => setLogs([]));
   }, []);
 
   return (

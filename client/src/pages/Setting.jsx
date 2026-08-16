@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bell, Check, ChevronRight, CircleUserRound, Globe2, HelpCircle, History, Home, LayoutDashboard, LogOut, Pencil, ScanLine, ShieldCheck, Target, UserRound, UsersRound, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import khanaLensLogo from "../assets/images/KhanaLens.jpg";
+import { getHistoryApi, getProfileApi, saveProfileApi, uploadProfilePictureApi } from "../services/api";
 
-const defaults = { name: "Alex Sharma", email: "alex.sharma@email.com", phone: "+977 9800000000", timezone: "Asia/Kathmandu", avatar: null, age: 28, gender: "Male", height: 172, currentWeight: 68, targetWeight: 62, activity: "Moderate", conditions: [], units: "Metric (kg, cm)", calorieGoal: 2200 };
+const defaults = { name: "", email: "", phone: "", timezone: "Asia/Kathmandu", avatar: null, age: "", gender: "", height: "", currentWeight: "", targetWeight: "", activity: "", conditions: [], units: "Metric (kg, cm)", calorieGoal: 2000, proteinGoal: 120, carbsGoal: 250, fatGoal: 70 };
 const groups = [
   { title: "YOUR PLAN", items: [{ id: "personal", icon: UserRound, label: "Personal information", description: "Body details" }, { id: "targetWeight", icon: Target, label: "Target weight", description: "Set your goal weight" }, { id: "conditions", icon: UsersRound, label: "Health conditions", description: "Optional health details" }] },
   { title: "PREFERENCES", items: [{ id: "units", icon: Globe2, label: "Units", description: "Metric (kg, cm)" }, { id: "notifications", icon: Bell, label: "Notifications", description: "Daily reminders" }, { id: "privacy", icon: ShieldCheck, label: "Privacy policy", description: "How your data is used" }, { id: "support", icon: HelpCircle, label: "Help & support", description: "Get answers" }] },
@@ -19,19 +20,42 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 
 
 export default function ProfileSettings() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [profile, setProfile] = useState(defaults);
   const [draft, setDraft] = useState(defaults);
   const [editing, setEditing] = useState(false);
   const [panel, setPanel] = useState(null);
   const [notifications, setNotifications] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [streak, setStreak] = useState(0);
   const letters = useMemo(() => profile.avatar ? <img src={profile.avatar} alt={`${profile.name} profile`} /> : initials(profile.name), [profile.avatar, profile.name]);
   const item = groups.flatMap((group) => group.items).find((entry) => entry.id === panel);
   const isImperial = draft.units === "Imperial (lb, in)";
   const displayedHeight = isImperial ? toImperialHeight(draft.height) : draft.height;
   const displayedWeight = isImperial ? toImperialWeight(draft.currentWeight) : draft.currentWeight;
   const displayedTargetWeight = isImperial ? toImperialWeight(draft.targetWeight) : draft.targetWeight;
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const storageKey = `nutrilens_profile:${user.id}`;
+    let savedProfile = {};
+    try { savedProfile = JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch { savedProfile = {}; }
+    const localProfile = { ...defaults, ...savedProfile, name: user.name || savedProfile.name || "User", email: user.email || savedProfile.email || "" };
+    setProfile(localProfile);
+    setDraft(localProfile);
+    getProfileApi().then((response) => {
+      if (!response.data.data) return;
+      const nextProfile = { ...localProfile, ...response.data.data };
+      setProfile(nextProfile); setDraft(nextProfile);
+    }).catch(() => {});
+    getHistoryApi().then((response) => setStreak(Number(response.data.summary?.streak || 0))).catch(() => setStreak(0));
+  }, [user?.id, user?.name, user?.email]);
+
+  const persistProfile = (nextProfile) => {
+    if (!user?.id) return;
+    localStorage.setItem(`nutrilens_profile:${user.id}`, JSON.stringify(nextProfile));
+    saveProfileApi(nextProfile).catch(() => {});
+  };
 
   const close = () => { setEditing(false); setPanel(null); };
   const edit = () => { setDraft(profile); setEditing(true); };
@@ -42,22 +66,35 @@ export default function ProfileSettings() {
   };
   const save = (event) => {
     event.preventDefault();
-    setProfile({ ...draft, name: draft.name.trim().slice(0, 40), age: clamp(draft.age, 7, 120), height: clamp(draft.height, 100, 250), currentWeight: clamp(draft.currentWeight, 25, 400), targetWeight: clamp(draft.targetWeight, 25, 400), calorieGoal: clamp(draft.calorieGoal, 1000, 6000) });
+    const nextProfile = { ...draft, name: draft.name.trim().slice(0, 40), age: clamp(draft.age, 7, 120), height: clamp(draft.height, 100, 250), currentWeight: clamp(draft.currentWeight, 25, 400), targetWeight: clamp(draft.targetWeight, 25, 400), calorieGoal: clamp(draft.calorieGoal, 1000, 6000) };
+    setProfile(nextProfile);
+    persistProfile(nextProfile);
     close(); setSaved(true); window.setTimeout(() => setSaved(false), 2200);
   };
   const savePersonal = (event) => {
     event.preventDefault();
-    setProfile({ ...profile, name: draft.name.trim().slice(0, 40), age: clamp(draft.age, 7, 120), height: clamp(draft.height, 100, 250), currentWeight: clamp(draft.currentWeight, 25, 400), targetWeight: clamp(draft.targetWeight, 25, 400), gender: draft.gender });
+    const nextProfile = { ...profile, name: draft.name.trim().slice(0, 40), age: clamp(draft.age, 7, 120), height: clamp(draft.height, 100, 250), currentWeight: clamp(draft.currentWeight, 25, 400), targetWeight: clamp(draft.targetWeight, 25, 400), gender: draft.gender };
+    setProfile(nextProfile);
+    persistProfile(nextProfile);
     close(); setSaved(true); window.setTimeout(() => setSaved(false), 2200);
   };
-  const chooseAvatar = (event) => {
+  const chooseAvatar = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const response = await uploadProfilePictureApi(formData);
+      setDraft((current) => ({ ...current, avatar: response.data.data.url }));
+      return;
+    } catch {
+      // Keep the local preview available if Firebase is temporarily unavailable.
+    }
     const reader = new FileReader();
     reader.onload = () => setDraft({ ...draft, avatar: reader.result });
     reader.readAsDataURL(file);
   };
-  const saveField = (event, field, value) => { event.preventDefault(); setProfile({ ...profile, [field]: value }); close(); setSaved(true); window.setTimeout(() => setSaved(false), 2200); };
+  const saveField = (event, field, value) => { event.preventDefault(); const nextProfile = { ...profile, [field]: value }; setProfile(nextProfile); persistProfile(nextProfile); close(); setSaved(true); window.setTimeout(() => setSaved(false), 2200); };
   const signOut = () => { logout(); navigate("/login"); };
 
   return <div className="profile-viewport">
@@ -90,7 +127,7 @@ export default function ProfileSettings() {
 
     <main className="profile-shell"><div className="profile-content">
       <header className="profile-topbar"><button className="profile-icon-button profile-back-button" type="button" onClick={() => navigate("/home")} aria-label="Back to dashboard"><ArrowLeft size={19} /></button><div className="profile-brand"><img src={khanaLensLogo} alt="KhanaLens logo" /><span className="profile-brand-copy"><strong>Khana<span>Lens</span></strong><small>Scan. Analyze. Eat Smarter.</small></span></div></header>
-      <section className="profile-hero"><div className="profile-hero-row"><div className="profile-avatar" aria-label={`${profile.name} avatar`}>{letters}</div><div className="profile-hero-copy"><h2>{profile.name}</h2><p>{profile.email}</p></div><button className="profile-edit-button" type="button" onClick={edit}><Pencil size={13} /> Edit</button></div><div className="profile-stat-grid"><div className="profile-stat"><strong>{profile.calorieGoal.toLocaleString()}</strong><span>DAILY KCAL</span></div><div className="profile-stat"><strong>{profile.activity}</strong><span>ACTIVITY</span></div><div className="profile-stat"><strong>12</strong><span>DAY STREAK</span></div></div></section>
+      <section className="profile-hero"><div className="profile-hero-row"><div className="profile-avatar" aria-label={`${profile.name || "User"} avatar`}>{letters}</div><div className="profile-hero-copy"><h2>{profile.name || "Set up your profile"}</h2><p>{profile.email}</p></div><button className="profile-edit-button" type="button" onClick={edit}><Pencil size={13} /> {profile.completed ? "Edit" : "Set up"}</button></div><div className="profile-stat-grid"><div className="profile-stat"><strong>{Number(profile.calorieGoal || 0).toLocaleString()}</strong><span>DAILY KCAL</span></div><div className="profile-stat"><strong>{profile.activity || "Not set"}</strong><span>ACTIVITY</span></div><div className="profile-stat"><strong>{streak}</strong><span>DAY STREAK</span></div></div></section>
       {groups.map((group) => (
         <section className="profile-section" key={group.title}>
           <p className="profile-section-label">{group.title}</p>
@@ -129,7 +166,7 @@ export default function ProfileSettings() {
         <input className="profile-form-input" id="personal-age" type="number" min="7" max="120" value={draft.age} onChange={(event) => setDraft({ ...draft, age: event.target.value })} required />
         <small style={{ display: "block", marginTop: 4, color: "#78958a", fontSize: 10, lineHeight: 1.4 }}>Affects how fast your body burns energy.</small>
         <label className="profile-form-label" htmlFor="personal-gender">Gender</label>
-        <select className="profile-form-select" id="personal-gender" value={draft.gender} onChange={(event) => setDraft({ ...draft, gender: event.target.value })}><option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option></select>
+        <select className="profile-form-select" id="personal-gender" value={draft.gender} onChange={(event) => setDraft({ ...draft, gender: event.target.value })} required><option value="">Select gender</option><option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option></select>
         <small style={{ display: "block", marginTop: 4, color: "#78958a", fontSize: 10, lineHeight: 1.4 }}>Changes the base calorie formula.</small>
         <label className="profile-form-label" htmlFor="personal-height">Height ({isImperial ? "in" : "cm"})</label>
         <input className="profile-form-input" id="personal-height" type="number" min={isImperial ? "39" : "100"} max={isImperial ? "98" : "250"} step="0.1" value={displayedHeight} onChange={(event) => setDraft({ ...draft, height: isImperial ? toMetricHeight(event.target.value) : event.target.value })} required />

@@ -25,6 +25,8 @@ import foodImageOne from "../assets/images/HealthyFood-1.jpg";
 import foodImageTwo from "../assets/images/HealthyFood-2.jpg";
 import foodImageThree from "../assets/images/Momo.jpg";
 import { getTrackedMeals } from "../services/tracker";
+import { getHistoryApi } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 /* =========================================================
    HISTORY DATA
@@ -221,13 +223,13 @@ const TABS = [
    FOOD ICON
 ========================================================= */
 
-function FoodIcon({ food, expanded }) {
+function FoodIcon({ food, expanded, image }) {
   const style = FOOD_STYLES[food] || FOOD_STYLES.veg;
   const Icon = style.icon;
 
   return (
     <div className={`food-icon ${expanded ? "food-icon-expanded" : ""}`} style={{ backgroundColor: style.bg }}>
-      <img className="food-image" src={FOOD_IMAGES[food] || foodImageTwo} alt={`${food} meal`} />
+      <img className="food-image" src={image || FOOD_IMAGES[food] || foodImageTwo} alt={`${food} meal`} />
       <Icon className="food-image-fallback" size={expanded ? 18 : 16} strokeWidth={1.8} color={style.color} aria-hidden="true" />
     </div>
   );
@@ -333,7 +335,9 @@ export default function History() {
   const [filterPressed, setFilterPressed] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [dietFilter, setDietFilter] = useState("All");
-  const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals());
+  const { user } = useAuth();
+  const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals(user?.id));
+  const [remoteMeals, setRemoteMeals] = useState([]);
 
   const pageRef = useRef(null);
   const touchStartX = useRef(null);
@@ -354,11 +358,35 @@ export default function History() {
       food: meal.food || "veg",
       calories: meal.calories || 0,
       protein: `${meal.protein || 0}g`,
+      image: meal.image || meal.imageUrl,
       description: "Added from your food scan.",
     })),
   }] : [];
 
-  const filteredData = [...trackedGroup, ...HISTORY_DATA]
+  useEffect(() => {
+    if (!user?.id) return;
+    setTrackedMeals(getTrackedMeals(user.id));
+    getHistoryApi()
+      .then((response) => setRemoteMeals(response.data.data || []))
+      .catch(() => setRemoteMeals([]));
+  }, [user?.id]);
+
+  const firebaseGroup = remoteMeals?.length ? [{
+    day: "Saved meals",
+    meals: remoteMeals.map((meal) => ({
+      name: meal.mealName || "Saved meal",
+      items: meal.items?.length || 1,
+      time: meal.createdAt ? new Date(meal.createdAt).toLocaleString() : "Recently",
+      type: "Scanned",
+      food: "veg",
+      calories: meal.totals?.calories || 0,
+      protein: `${Math.round(meal.totals?.protein || 0)}g`,
+      image: meal.image || meal.imageUrl,
+      description: meal.insight || "Saved from your food scan.",
+    })),
+  }] : [];
+
+  const filteredData = [...trackedGroup, ...firebaseGroup]
     .map((group) => {
       let meals =
         activeTab === "All"
@@ -708,6 +736,7 @@ export default function History() {
 
                                 <FoodIcon
                                   food={meal.food}
+                                  image={meal.image}
                                   expanded={
                                     selected
                                   }

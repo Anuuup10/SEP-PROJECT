@@ -8,19 +8,20 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      // Decode or restore session
-      setUser({ name: 'Demo User', email: 'user@nutrilens.ai' });
+      try { setUser(JSON.parse(localStorage.getItem('nutrilens_user') || 'null')); } catch { setUser(null); }
     }
   }, [token]);
 
   const login = (newToken, userData) => {
     localStorage.setItem('nutrilens_token', newToken);
+    localStorage.setItem('nutrilens_user', JSON.stringify(userData));
     setToken(newToken);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem('nutrilens_token');
+    localStorage.removeItem('nutrilens_user');
     setToken(null);
     setUser(null);
   };

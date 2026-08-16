@@ -23,7 +23,7 @@ export default function ItemDetails({ item = defaultItem, onBack }) {
     carbs = defaultItem.carbs,
     fiber = defaultItem.fiber,
     sodium = defaultItem.sodium,
-    image = defaultItem.image,
+    image = item.image || defaultItem.image,
     nutritionFacts,
   } = item;
   const fat = item.fats ?? defaultItem.fat;

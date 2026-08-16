@@ -2,21 +2,30 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Camera as CameraIcon, Image as ImageIcon, Loader2, Sparkles, X, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useNutrition } from '../hooks/useNutrition';
-import { sampleResult } from './FoodAnalysisResult.example';
+import { compressFoodImage } from '../services/imageCompression';
+import { getProfileApi } from '../services/api';
 
 export const Scan = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment');
   const [cameraMessage, setCameraMessage] = useState('');
   const [scanResult, setScanResult] = useState(null);
+  const [profileReady, setProfileReady] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const { scanFood, loading, error } = useNutrition();
   const navigate = useNavigate();
 
-  const startCamera = async () => {
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setCameraActive(false);
+  };
+
+  const startCamera = async (requestedFacingMode = facingMode) => {
     if (!window.isSecureContext) {
       setCameraMessage('Open the HTTPS mobile link to enable your camera.');
       return;
@@ -26,10 +35,23 @@ export const Scan = () => {
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1440 } },
-        audio: false,
-      });
+      stopCamera();
+      const videoOptions = { width: { ideal: 1080 }, height: { ideal: 1440 } };
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { ...videoOptions, facingMode: { exact: requestedFacingMode } },
+          audio: false,
+        });
+      } catch (error) {
+        // Some browsers do not expose facingMode constraints. Keep scanning
+        // usable there, while preferring the requested camera whenever possible.
+        if (error.name !== 'OverconstrainedError' && error.name !== 'ConstraintNotSatisfiedError') throw error;
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { ...videoOptions, facingMode: { ideal: requestedFacingMode } },
+          audio: false,
+        });
+      }
       streamRef.current = stream;
       setCameraActive(true);
       window.setTimeout(() => {
@@ -45,8 +67,13 @@ export const Scan = () => {
   };
 
   useEffect(() => {
-    startCamera();
-    return () => streamRef.current?.getTracks().forEach((track) => track.stop());
+    getProfileApi().then((response) => {
+      const profile = response.data.data;
+      const ready = Boolean(profile?.age && profile?.gender && profile?.height && profile?.currentWeight);
+      setProfileReady(ready);
+      if (ready) startCamera();
+    }).catch(() => setProfileReady(false));
+    return () => stopCamera();
   }, []);
 
   const handleFile = (event) => {
@@ -60,7 +87,14 @@ export const Scan = () => {
 
   const openCamera = () => {
     if (streamRef.current) return;
-    startCamera();
+    startCamera(facingMode);
+  };
+
+  const switchCamera = async () => {
+    const nextFacingMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextFacingMode);
+    setCameraMessage('Switching camera…');
+    await startCamera(nextFacingMode);
   };
 
   const captureFrame = () => {
@@ -78,23 +112,29 @@ export const Scan = () => {
       const file = new File([blob], 'food-capture.jpg', { type: 'image/jpeg' });
       setSelectedFile(file);
       setPreview(URL.createObjectURL(file));
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      setCameraActive(false);
+      stopCamera();
     }, 'image/jpeg', .9);
   };
 
   const handleAnalyze = async () => {
+    if (!profileReady) return;
     if (!selectedFile) return;
     try {
-      const response = await scanFood(selectedFile);
+      const compressedImage = await compressFoodImage(selectedFile);
+      const response = await scanFood(compressedImage);
       const result = response?.data || response;
       setScanResult(result);
       navigate('/scan/result', { state: { result } });
     } catch {
-      setScanResult(sampleResult);
-      navigate('/scan/result', { state: { result: sampleResult } });
+      // Keep the scanner open and show the real API error. Never replace a failed
+      // scan with demo nutrition data.
+      setScanResult(null);
     }
   };
+
+  if (profileReady !== true) {
+    return <div className="scanner-viewport"><div className="scanner-screen scanner-profile-gate"><div><strong>{profileReady === null ? 'Checking your profile…' : 'Complete your profile first'}</strong><p>{profileReady === null ? 'Please wait a moment.' : 'Age, gender, height, and current weight are required before food scanning.'}</p>{profileReady === false && <Link to="/profile">Set your profile&nbsp; →</Link>}</div></div></div>;
+  }
 
   return (
     <div className="scanner-viewport">
@@ -131,7 +171,7 @@ export const Scan = () => {
             <span>{selectedFile ? <Sparkles size={24} /> : <span className="capture-glow" />}</span>
           </button>
           <div className="scanner-side-control">
-            <button className="scanner-action-button" onClick={openCamera} aria-label="Switch camera"><CameraIcon size={24} /></button>
+            <button className="scanner-action-button" onClick={switchCamera} aria-label="Switch camera" type="button"><CameraIcon size={24} /></button>
             <span>Switch</span>
             <input id="camera-file-input" type="file" accept="image/*" capture="environment" onChange={handleFile} />
           </div>
