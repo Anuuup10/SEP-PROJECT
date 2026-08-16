@@ -18,11 +18,11 @@ export const Scan = () => {
 
   const startCamera = async () => {
     if (!window.isSecureContext) {
-      setCameraMessage('Camera preview needs HTTPS on your phone. Use Gallery to choose a meal photo.');
+      setCameraMessage('Open the HTTPS mobile link to enable your camera.');
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraMessage('Live camera is not supported in this browser. Use Gallery instead.');
+      setCameraMessage('Live camera is not supported in this browser.');
       return;
     }
     try {
@@ -40,7 +40,7 @@ export const Scan = () => {
       }, 0);
     } catch {
       setCameraActive(false);
-      setCameraMessage('Camera permission was blocked. Allow camera access or use Gallery.');
+      setCameraMessage('Camera permission was blocked. Allow camera access in Chrome settings.');
     }
   };
 
@@ -60,16 +60,12 @@ export const Scan = () => {
 
   const openCamera = () => {
     if (streamRef.current) return;
-    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      document.getElementById('camera-file-input')?.click();
-      return;
-    }
     startCamera();
   };
 
   const captureFrame = () => {
     if (!cameraActive || !videoRef.current) {
-      document.getElementById('camera-file-input')?.click();
+      startCamera();
       return;
     }
     const video = videoRef.current;
@@ -116,7 +112,11 @@ export const Scan = () => {
           <div className="scanner-frame" aria-hidden="true"><span /><span /><span /><span /></div>
           <div className="scanner-hint">Center your food in the frame</div>
 
-          {loading && <div className="scanner-processing"><Loader2 className="scanner-spin" size={22} /> Analyzing your meal…</div>}
+          {loading && <div className="scanner-analysis-overlay" role="status" aria-live="polite">
+            <div className="scanner-analysis-orbit"><span>🍽️</span><i /><i /><i /></div>
+            <strong>Reading your meal</strong>
+            <span>Identifying ingredients and nutrients<span className="scanner-analysis-dots">...</span></span>
+          </div>}
           {scanResult && <div className="scanner-result"><Sparkles size={16} /> {scanResult.foodName || 'Meal analyzed successfully'}</div>}
           {error && <div className="scanner-error">{error}</div>}
         </div>

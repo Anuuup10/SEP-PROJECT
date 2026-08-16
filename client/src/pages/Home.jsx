@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Bell,
   Camera,
@@ -80,6 +80,7 @@ function MacroRow({ type, label, value, goal, color }) {
 }
 
 export const Home = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { getHistory, loading } = useNutrition();
   const [history, setHistory] = useState(null);
@@ -127,9 +128,29 @@ export const Home = () => {
     calories: meal.calories,
     itemCount: meal.itemCount || meal.items?.length || 1,
     createdAt: meal.createdAt || 'Just now',
+    items: meal.items,
   }));
   const meals = [...trackedMealRows, ...(history?.data?.length ? history.data : demoMeals)].slice(0, 2);
   const displayName = user?.name?.split(' ')[0] || 'Alex';
+  const openMealDetails = (meal) => {
+    navigate(`/food/${meal._id || 'recent-meal'}`, {
+      state: {
+        item: {
+          id: meal._id,
+          name: meal.foodName || 'Recent meal',
+          portion: `${meal.itemCount || 1} items`,
+          kcal: Number(meal.calories || meal.kcal || 0),
+          protein: Number(meal.protein || 0),
+          carbs: Number(meal.carbs || 0),
+          fat: Number(meal.fats ?? meal.fat ?? 0),
+          fiber: Number(meal.fiber || 0),
+          sodium: Number(meal.sodium || 0),
+          image: meal.image || mealImage,
+          items: meal.items,
+        },
+      },
+    });
+  };
 
   return (
     <div className="dashboard-viewport">
@@ -172,7 +193,7 @@ export const Home = () => {
           <div className="section-heading"><h2>Recent Meals</h2><Link to="/history">See All</Link></div>
           <div className="meal-list">
             {loading && !history ? <div className="loading-row">Loading your meals…</div> : meals.map((meal, index) => (
-              <div className="meal-row" key={meal._id || `${meal.foodName}-${index}`}>
+              <div className="meal-row" key={meal._id || `${meal.foodName}-${index}`} role="button" tabIndex="0" onClick={() => openMealDetails(meal)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openMealDetails(meal); }}>
                 <img src={mealImage} alt="" />
                 <div className="meal-copy"><strong>{meal.foodName}</strong><span>{meal.calories} kcal&nbsp; · &nbsp;{meal.itemCount || 3} items</span></div>
                 <ChevronRight size={20} />

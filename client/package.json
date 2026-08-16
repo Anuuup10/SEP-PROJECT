@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:mobile": "vite --host --https",
+    "dev:mobile": "vite --host",
     "tunnel": "lt --port 5173",
     "build": "vite build",
     "preview": "vite preview"

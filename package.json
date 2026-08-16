@@ -4,7 +4,7 @@
   "description": "NutriLens - AI-Powered Nutrition Scanner and Health Tracker",
   "main": "server/server.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+    "dev": "concurrently \"npm run dev:mobile --prefix client\" \"npm run dev --prefix server\"",
     "client": "npm run dev --prefix client",
     "server": "npm run dev --prefix server",
     "install:all": "npm install && npm install --prefix client && npm install --prefix server",
