@@ -67,12 +67,16 @@ export const Scan = () => {
   };
 
   useEffect(() => {
+    let cachedProfile = null;
+    try { cachedProfile = JSON.parse(localStorage.getItem(`nutrilens_profile:${localStorage.getItem('nutrilens_user') ? JSON.parse(localStorage.getItem('nutrilens_user')).id : ''}`) || 'null'); } catch { cachedProfile = null; }
+    const hasRequiredDetails = (profile) => Boolean(profile?.age && profile?.gender && profile?.height && profile?.currentWeight);
+    if (hasRequiredDetails(cachedProfile)) setProfileReady(true);
     getProfileApi().then((response) => {
       const profile = response.data.data;
-      const ready = Boolean(profile?.age && profile?.gender && profile?.height && profile?.currentWeight);
+      const ready = hasRequiredDetails(profile) || hasRequiredDetails(cachedProfile);
       setProfileReady(ready);
       if (ready) startCamera();
-    }).catch(() => setProfileReady(false));
+    }).catch(() => setProfileReady(hasRequiredDetails(cachedProfile)));
     return () => stopCamera();
   }, []);
 

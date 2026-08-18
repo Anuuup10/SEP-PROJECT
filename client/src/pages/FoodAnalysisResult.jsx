@@ -75,11 +75,12 @@ export default function FoodAnalysisResult({
   };
 
   const handleSaveToHistory = async () => {
-    if (savedToHistory || saving) return;
-    if (!result.scanId) return setSaveError("This scan is missing its Firebase reference. Please scan it again.");
+    if (savedToHistory) return true;
+    if (saving) return false;
+    if (!result.scanId) { setSaveError("This scan is missing its backend reference. Please scan it again."); return false; }
     setSaving(true); setSaveError(null);
-    try { await saveMealApi(result.scanId); setSavedToHistory(true); }
-    catch (error) { setSaveError(error.response?.data?.message || "Could not save this meal"); }
+    try { await saveMealApi(result.scanId); setSavedToHistory(true); return true; }
+    catch (error) { setSaveError(error.response?.data?.message || "Could not save this meal"); return false; }
     finally { setSaving(false); }
   };
   const activeItems = detectedItems.filter((item) => !removedItemIds.includes(item.id));
@@ -98,8 +99,9 @@ export default function FoodAnalysisResult({
     if (tracked || activeItems.length === 0) return;
     setTrackerConfirmationOpen(true);
   };
-  const confirmAddToTracker = () => {
-    if (!savedToHistory) handleSaveToHistory();
+  const confirmAddToTracker = async () => {
+    const saved = await handleSaveToHistory();
+    if (!saved) return;
     addTrackedMeal({ mealName, itemCount: activeItems.length, calories: adjustedNutrition.totalKcal, protein: adjustedNutrition.protein, carbs: adjustedNutrition.carbs, fats: adjustedNutrition.fats, createdAt: "Just now", food: "meal", image: result.image || result.imageUrl || image, items: activeItems.map((item) => ({ ...item, image: item.image || result.image || result.imageUrl || image })) }, user?.id);
     setTracked(true);
     setTrackerConfirmationOpen(false);

@@ -16,5 +16,6 @@ const mealSchema = new mongoose.Schema({
 }, { minimize: false });
 
 mealSchema.index({ userId: 1, createdAt: -1 });
+mealSchema.index({ userId: 1, scanId: 1 }, { unique: true });
 
 export default mongoose.model('Meal', mealSchema);

@@ -216,8 +216,15 @@ const TABS = [
   "Breakfast",
   "Lunch",
   "Dinner",
-  "Snacks",
 ];
+
+const mealTypeFromDate = (createdAt) => {
+  const parsed = new Date(createdAt);
+  const hour = Number.isNaN(parsed.getTime()) ? new Date().getHours() : parsed.getHours();
+  if (hour >= 5 && hour < 11) return "Breakfast";
+  if (hour >= 11 && hour < 16) return "Lunch";
+  return "Dinner";
+};
 
 /* =========================================================
    FOOD ICON
@@ -354,7 +361,7 @@ export default function History() {
       name: meal.mealName,
       items: meal.itemCount || meal.items?.length || 1,
       time: meal.createdAt || "Just now",
-      type: "Scanned",
+      type: mealTypeFromDate(meal.createdAt),
       food: meal.food || "veg",
       calories: meal.calories || 0,
       protein: `${meal.protein || 0}g`,
@@ -377,7 +384,7 @@ export default function History() {
       name: meal.mealName || "Saved meal",
       items: meal.items?.length || 1,
       time: meal.createdAt ? new Date(meal.createdAt).toLocaleString() : "Recently",
-      type: "Scanned",
+      type: mealTypeFromDate(meal.createdAt),
       food: "veg",
       calories: meal.totals?.calories || 0,
       protein: `${Math.round(meal.totals?.protein || 0)}g`,
@@ -386,7 +393,7 @@ export default function History() {
     })),
   }] : [];
 
-  const filteredData = [...trackedGroup, ...firebaseGroup]
+  const filteredData = (remoteMeals.length ? firebaseGroup : trackedGroup)
     .map((group) => {
       let meals =
         activeTab === "All"

@@ -18,6 +18,7 @@ export const scanFoodApi = (formData) => API.post('/nutrition/scan', formData, {
   headers: { 'Content-Type': 'multipart/form-data' }
 });
 export const getHistoryApi = () => API.get('/nutrition/history');
+export const getProgressApi = (period = 'week') => API.get('/nutrition/progress', { params: { period } });
 export const saveMealApi = (scanId) => API.post('/nutrition/meals', { scanId });
 export const uploadProfilePictureApi = (formData) => API.post('/uploads/profile-picture', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 export const getProfileApi = () => API.get('/profile');

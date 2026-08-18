@@ -16,11 +16,12 @@ import khanaLensLogo from '../assets/images/KhanaLens.jpg';
 import { useAuth } from '../hooks/useAuth';
 import { useNutrition } from '../hooks/useNutrition';
 import { getTrackedMeals } from '../services/tracker';
-import { getProfileApi, saveProfileApi } from '../services/api';
+import { getProfileApi, getProgressApi, saveProfileApi } from '../services/api';
+import { FoodAvatar } from '../components/FoodAvatar';
 
 const defaultSummary = { calories: 0, calorieGoal: 2000, protein: 0, proteinGoal: 120, carbs: 0, carbsGoal: 250, fat: 0, fatGoal: 70 };
 
-function Avatar({ user }) {
+function Avatar({ user, profile }) {
   const [imageFailed, setImageFailed] = useState(false);
   const initials = (user?.name || 'User')
     .split(' ')
@@ -29,6 +30,7 @@ function Avatar({ user }) {
     .slice(0, 2)
     .toUpperCase();
 
+  if (profile?.avatar) return <FoodAvatar avatar={profile.avatar} className="dashboard-food-avatar" alt={`${user?.name || 'User'} food avatar`} />;
   return user?.avatarUrl && !imageFailed ? (
     <img className="dashboard-avatar" src={user.avatarUrl} alt={`${user.name} profile`} onError={() => setImageFailed(true)} />
   ) : (
@@ -81,6 +83,8 @@ export const Home = () => {
   const { getHistory, loading } = useNutrition();
   const [history, setHistory] = useState({ summary: { totals: {} }, data: [] });
   const [profile, setProfile] = useState(null);
+  const [nutritionProgress, setNutritionProgress] = useState(null);
+  const [selectedProgressDate, setSelectedProgressDate] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals(user?.id));
   const [goalOverride, setGoalOverride] = useState({});
@@ -91,10 +95,16 @@ export const Home = () => {
     if (!user?.id) return;
     let cachedProfile = null;
     try { cachedProfile = JSON.parse(localStorage.getItem(`nutrilens_profile:${user.id}`) || 'null'); } catch { cachedProfile = null; }
+    if (cachedProfile) cachedProfile.completed = Boolean(cachedProfile.name && cachedProfile.age && cachedProfile.gender && cachedProfile.height && cachedProfile.currentWeight);
     setProfile(cachedProfile);
     setProfileLoading(true);
     setTrackedMeals(getTrackedMeals(user.id));
     getHistory().then(setHistory).catch(() => setHistory({ summary: { totals: {} }, data: [] }));
+    getProgressApi('week').then((response) => {
+      const nextProgress = response.data.data;
+      setNutritionProgress(nextProgress);
+      setSelectedProgressDate(nextProgress.days?.[nextProgress.days.length - 1]?.date || null);
+    }).catch(() => setNutritionProgress(null));
     getProfileApi().then((response) => {
       const nextProfile = response.data.data;
       const resolvedProfile = nextProfile || cachedProfile;
@@ -120,17 +130,20 @@ export const Home = () => {
     carbs: totals.carbs + Number(meal.carbs || 0),
     fat: totals.fat + Number(meal.fats ?? meal.fat ?? 0),
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 }), [trackedMeals]);
+  const progressDays = nutritionProgress?.days || [];
+  const selectedDay = progressDays.find((day) => day.date === selectedProgressDate) || progressDays[progressDays.length - 1];
 
   const summary = useMemo(() => {
-    const base = { ...defaultSummary, ...(history?.summary?.totals || {}), calorieGoal: Number(profile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(profile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(profile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(profile?.fatGoal || defaultSummary.fatGoal), ...goalOverride };
+    const selectedTotals = selectedDay || nutritionProgress?.today || {};
+    const base = { ...defaultSummary, calories: Number(selectedTotals.calories || 0), protein: Number(selectedTotals.protein || 0), carbs: Number(selectedTotals.carbs || 0), fat: Number(selectedTotals.fat || 0), calorieGoal: Number(profile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(profile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(profile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(profile?.fatGoal || defaultSummary.fatGoal), ...goalOverride };
     return {
       ...base,
-      calories: Number(base.calories || 0) + trackedTotals.calories,
-      protein: Number(base.protein || 0) + trackedTotals.protein,
-      carbs: Number(base.carbs || 0) + trackedTotals.carbs,
-      fat: Number(base.fat || 0) + trackedTotals.fat,
+      calories: Number(base.calories || 0),
+      protein: Number(base.protein || 0),
+      carbs: Number(base.carbs || 0),
+      fat: Number(base.fat || 0),
     };
-  }, [history, goalOverride, trackedTotals, profile?.calorieGoal, profile?.proteinGoal, profile?.carbsGoal, profile?.fatGoal]);
+  }, [nutritionProgress, selectedDay, goalOverride, profile?.calorieGoal, profile?.proteinGoal, profile?.carbsGoal, profile?.fatGoal]);
 
   const trackedMealRows = trackedMeals.map((meal) => ({
     _id: meal.id,
@@ -141,7 +154,22 @@ export const Home = () => {
     image: meal.image || meal.imageUrl,
     items: meal.items,
   }));
-  const meals = [...trackedMealRows, ...(history?.data || [])].slice(0, 2);
+  const savedMealRows = (history?.data || []).map((meal) => ({
+    ...meal,
+    _id: meal._id || meal.id,
+    foodName: meal.foodName || meal.mealName || 'Saved meal',
+    calories: Number(meal.calories ?? meal.totals?.calories ?? 0),
+    itemCount: meal.itemCount || meal.items?.length || 1,
+    protein: Number(meal.protein ?? meal.totals?.protein ?? 0),
+    carbs: Number(meal.carbs ?? meal.totals?.carbohydrates ?? 0),
+    fats: Number(meal.fats ?? meal.totals?.fat ?? 0),
+  }));
+  const isSelectedToday = selectedDay?.date === progressDays[progressDays.length - 1]?.date;
+  const selectedDayName = selectedDay ? new Date(`${selectedDay.date}T12:00:00Z`).toLocaleDateString([], { weekday: 'long' }) : 'Today';
+  const selectedDayMealRows = (selectedDay?.meals || []).map((meal) => ({ ...meal, _id: meal.id, foodName: meal.name || 'Saved meal', calories: Number(meal.calories || 0), itemCount: meal.items || 1 }));
+  // MongoDB is canonical once the save request completes. Local tracker data
+  // is only used as a temporary fallback before progress data loads.
+  const meals = selectedDay ? selectedDayMealRows.slice(0, 2) : (savedMealRows.length ? savedMealRows : trackedMealRows).slice(0, 2);
   const displayName = user?.name?.split(' ')[0] || 'there';
   const saveGoals = async () => {
     if (!profile) return;
@@ -181,7 +209,7 @@ export const Home = () => {
           </Link>
           <div className="dashboard-header-actions">
             <button className="icon-button" aria-label="Notifications"><Bell size={20} /></button>
-            <Link to="/profile" aria-label="Open profile"><Avatar user={user} /></Link>
+            <Link to="/profile" aria-label="Open profile"><Avatar user={user} profile={profile} /></Link>
           </div>
         </div>
         <header className="dashboard-header">
@@ -199,7 +227,7 @@ export const Home = () => {
         </Link>
 
         <section className="dashboard-section">
-          <div className="section-heading"><h2>Today's Summary</h2><button type="button" onClick={() => { setGoalDraft({ calorieGoal: summary.calorieGoal, proteinGoal: summary.proteinGoal, carbsGoal: summary.carbsGoal, fatGoal: summary.fatGoal }); setGoalEditorOpen(true); }}>Edit Goal</button></div>
+          <div className="section-heading"><h2>{isSelectedToday ? "Today's Summary" : `${selectedDayName}'s Summary`}</h2><button type="button" onClick={() => { setGoalDraft({ calorieGoal: summary.calorieGoal, proteinGoal: summary.proteinGoal, carbsGoal: summary.carbsGoal, fatGoal: summary.fatGoal }); setGoalEditorOpen(true); }}>Edit Goal</button></div>
             <div className="summary-card">
             <SummaryRing calories={summary.calories} goal={summary.calorieGoal} />
             <div className="macro-list">
@@ -210,8 +238,23 @@ export const Home = () => {
           </div>
         </section>
 
+        <section className="dashboard-section weekly-scans-section" aria-labelledby="weekly-scans-title">
+          <div className="section-heading"><h2 id="weekly-scans-title">Last 7 days</h2><Link to="/progress">View progress</Link></div>
+          <div className="weekly-scans-card">
+            <div className="weekly-day-strip">
+              {progressDays.map((day) => {
+                const date = new Date(`${day.date}T00:00:00Z`);
+                const isSelected = day.date === (selectedDay?.date || selectedProgressDate);
+                return <button type="button" key={day.date} className={`weekly-day ${isSelected ? 'selected' : ''}`} onClick={() => setSelectedProgressDate(day.date)} aria-label={`${date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}: ${day.meals.length} scans`}><span>{date.toLocaleDateString([], { weekday: 'short' }).toUpperCase()}</span><strong>{date.getUTCDate()}</strong>{day.meals.length > 0 && <i aria-hidden="true" />}</button>;
+              })}
+              {!progressDays.length && <div className="weekly-scans-empty">Loading scan history…</div>}
+            </div>
+            {selectedDay && <div className="weekly-day-summary"><strong>{selectedDay.meals.length} {selectedDay.meals.length === 1 ? 'scan' : 'scans'}</strong><span>{Math.round(selectedDay.calories).toLocaleString()} kcal saved for {new Date(`${selectedDay.date}T00:00:00Z`).toLocaleDateString([], { weekday: 'long' })}</span></div>}
+          </div>
+        </section>
+
         <section className="dashboard-section recent-section">
-          <div className="section-heading"><h2>Recent Meals</h2><Link to="/history">See All</Link></div>
+          <div className="section-heading"><h2>{isSelectedToday ? 'Recent Meals' : `Meals for ${selectedDayName}`}</h2><Link to="/history">See All</Link></div>
           <div className="meal-list">
             {loading && !history ? <div className="loading-row">Loading your meals…</div> : meals.map((meal, index) => (
               <div className="meal-row" key={meal._id || `${meal.foodName}-${index}`} role="button" tabIndex="0" onClick={() => openMealDetails(meal)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openMealDetails(meal); }}>

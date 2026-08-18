@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { scanFood, getNutritionHistory, saveNutritionMeal } from '../controllers/nutritionController.js';
+import { getNutritionProgress } from '../controllers/progressController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { config } from '../config/env.js';
 
@@ -18,5 +19,6 @@ const router = express.Router();
 router.post('/scan', protect, upload.single('image'), scanFood);
 router.post('/meals', protect, saveNutritionMeal);
 router.get('/history', protect, getNutritionHistory);
+router.get('/progress', protect, getNutritionProgress);
 
 export default router;

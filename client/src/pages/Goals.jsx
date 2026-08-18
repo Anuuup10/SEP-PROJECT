@@ -11,6 +11,7 @@ import {
   CircleUserRound,
   TrendingUp,
 } from 'lucide-react';
+import { getProgressApi } from '../services/api';
 
 const progressData = {
   kcal: {
@@ -52,11 +53,11 @@ const periodData = {
   },
 };
 
-function ProgressChart({ metric, period, selectedIndex, onSelect }) {
+function ProgressChart({ metric, metricData, selectedIndex, onSelect }) {
   const width = 340;
   const height = 190;
   const padding = { top: 18, right: 19, bottom: 30, left: 42 };
-  const data = { ...progressData[metric], ...periodData[metric][period] };
+  const data = metricData;
   const max = Math.ceil(Math.max(...data.values, data.goal) / (metric === 'kcal' ? 500 : 20)) * (metric === 'kcal' ? 500 : 20);
   const min = 0;
   const x = (index) => padding.left + (index * (width - padding.left - padding.right)) / (data.values.length - 1);
@@ -66,6 +67,7 @@ function ProgressChart({ metric, period, selectedIndex, onSelect }) {
   const peakValue = data.values[peakIndex];
   const areaPoints = `${x(0)},${height - padding.bottom} ${points} ${x(data.values.length - 1)},${height - padding.bottom}`;
   const ticks = [0, max / 2, max];
+  const labelStep = data.labels.length > 21 ? 5 : data.labels.length > 7 ? 2 : 1;
 
   return (
     <div className="goal-chart-wrap">
@@ -93,7 +95,7 @@ function ProgressChart({ metric, period, selectedIndex, onSelect }) {
           <circle className={`chart-point goal-chart-point ${selectedIndex === index ? 'selected' : ''}`} style={{ '--point-index': index }} cx={x(index)} cy={y(value)} r={selectedIndex === index ? 6 : 5} fill="#fff" stroke={data.color} strokeWidth="2.5" tabIndex="0" role="button" aria-label={`${data.labels[index]}: ${value.toLocaleString()} ${data.unit}`} onClick={() => onSelect(index)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect(index); }} />
           {selectedIndex === index && <g><rect x={x(index) - 31} y={y(value) - 32} width="62" height="22" rx="11" fill={data.color} /><text x={x(index)} y={y(value) - 17} textAnchor="middle" className="chart-tooltip">{value.toLocaleString()}{data.unit}</text></g>}
         </g>)}
-        {data.labels.map((day, index) => <text key={`${day}-${index}`} x={x(index)} y={height - 8} textAnchor="middle" className="chart-axis">{day}</text>)}
+        {data.labels.map((day, index) => (index % labelStep === 0 || index === data.labels.length - 1) ? <text key={`${day}-${index}`} x={x(index)} y={height - 8} textAnchor="middle" className="chart-axis">{day}</text> : null)}
       </svg>
     </div>
   );
@@ -105,16 +107,30 @@ export const Goals = () => {
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(periodData.kcal.week.values.length - 1);
   const [headerScrolled, setHeaderScrolled] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    setLoading(true); setError('');
+    getProgressApi(period)
+      .then((response) => { const next = response.data.data; setProgress(next); setSelectedIndex(Math.max(0, (next.days?.length || 1) - 1)); })
+      .catch(() => setError('Unable to load your goal progress.'))
+      .finally(() => setLoading(false));
+  }, [period]);
   useEffect(() => {
     const handleScroll = () => setHeaderScrolled(window.scrollY > 18);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  const active = useMemo(() => ({ ...progressData[metric], ...periodData[metric][period] }), [metric, period]);
+  const metricKey = metric === 'kcal' ? 'calories' : 'protein';
+  const values = progress?.days?.map((day) => Number(day[metricKey] || 0)) || [0];
+  const labels = progress?.days?.map((day) => new Date(`${day.date}T12:00:00Z`).toLocaleDateString([], period === 'week' ? { weekday: 'short' } : { month: 'short', day: 'numeric' })) || ['Today'];
+  const active = useMemo(() => ({ label: metric === 'kcal' ? 'Calories' : 'Protein', unit: metric === 'kcal' ? 'kcal' : 'g', current: values[values.length - 1] || 0, goal: Number(progress?.goals?.[metricKey] || 0), change: '', color: metric === 'kcal' ? '#4cae91' : '#7a8dd8', values, labels }), [metric, progress, metricKey]);
   const periodLabel = periodOptions.find((option) => option.id === period).label;
   const selectedValue = active.values[Math.min(selectedIndex, active.values.length - 1)];
   const selectedLabel = active.labels[Math.min(selectedIndex, active.labels.length - 1)];
-  const completion = Math.round((active.current / active.goal) * 100);
+  const completion = active.goal > 0 ? Math.min(Math.round((active.current / active.goal) * 100), 100) : 0;
+  const completionFor = (key) => Number(progress?.completion?.[key] || 0);
 
   return (
     <div className="goals-viewport">
@@ -128,7 +144,7 @@ export const Goals = () => {
                 {periodOptions.find((option) => option.id === period).label} <ChevronDown size={15} />
               </button>
               {periodOpen && <div className="period-menu" role="listbox" aria-label="Progress period">
-                {periodOptions.map((option) => <button key={option.id} className={period === option.id ? 'active' : ''} onClick={() => { setPeriod(option.id); setSelectedIndex(periodData[metric][option.id].values.length - 1); setPeriodOpen(false); }} role="option" aria-selected={period === option.id}>{option.label}</button>)}
+                {periodOptions.map((option) => <button key={option.id} className={period === option.id ? 'active' : ''} onClick={() => { setPeriod(option.id); setSelectedIndex(0); setPeriodOpen(false); }} role="option" aria-selected={period === option.id}>{option.label}</button>)}
               </div>}
             </div>
           </header>
@@ -138,20 +154,17 @@ export const Goals = () => {
           <div className="progress-card-heading">
             <div><p className="card-kicker">{periodLabel.toUpperCase()} PROGRESS</p><h2>{active.label} progress</h2></div>
             <div className="metric-switch" role="tablist" aria-label="Choose progress metric">
-              <button className={metric === 'kcal' ? 'selected' : ''} onClick={() => { setMetric('kcal'); setSelectedIndex(periodData.kcal[period].values.length - 1); }} role="tab" aria-selected={metric === 'kcal'}><Flame size={14} /> kcal</button>
-              <button className={metric === 'protein' ? 'selected protein' : ''} onClick={() => { setMetric('protein'); setSelectedIndex(periodData.protein[period].values.length - 1); }} role="tab" aria-selected={metric === 'protein'}>Protein</button>
+              <button className={metric === 'kcal' ? 'selected' : ''} onClick={() => { setMetric('kcal'); setSelectedIndex(Math.max(0, (progress?.days?.length || 1) - 1)); }} role="tab" aria-selected={metric === 'kcal'}><Flame size={14} /> kcal</button>
+              <button className={metric === 'protein' ? 'selected protein' : ''} onClick={() => { setMetric('protein'); setSelectedIndex(Math.max(0, (progress?.days?.length || 1) - 1)); }} role="tab" aria-selected={metric === 'protein'}>Protein</button>
             </div>
           </div>
           <div className="goal-stat-row"><div><strong>{selectedValue.toLocaleString()} <small>{active.unit}</small></strong><span>{selectedLabel} · {periodLabel}</span></div><div className="goal-target"><span>Daily goal</span><strong>{active.goal.toLocaleString()} {active.unit}</strong></div><span className="goal-change"><TrendingUp size={14} /> {active.change}</span></div>
-          <ProgressChart metric={metric} period={period} selectedIndex={selectedIndex} onSelect={setSelectedIndex} />
+          {error ? <p className="goal-note">{error}</p> : loading ? <p className="goal-note">Loading your progress…</p> : <ProgressChart metric={metric} metricData={active} selectedIndex={selectedIndex} onSelect={setSelectedIndex} />}
         </section>
 
         <section className="goal-card completion-card">
           <div className="completion-heading"><div><p className="card-kicker">AT A GLANCE</p><h2>Goal completion</h2><span className="completion-period">{periodLabel}</span></div><span className="completion-total">{completion}%<small>{periodLabel.toLowerCase()}</small></span></div>
-          <div className="completion-row"><div><span>Calories</span><strong>82%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': '82%', background: '#18B895' }} /></div></div>
-          <div className="completion-row"><div><span>Protein</span><strong>80%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': '80%', background: '#7a8dd8' }} /></div></div>
-          <div className="completion-row"><div><span>Carbs</span><strong>66%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': '66%', background: '#f0ad62' }} /></div></div>
-          <div className="completion-row"><div><span>Fat</span><strong>69%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': '69%', background: '#6db8b0' }} /></div></div>
+          {[['Calories', 'calories', '#18B895'], ['Protein', 'protein', '#7a8dd8'], ['Carbs', 'carbs', '#f0ad62'], ['Fat', 'fat', '#6db8b0']].map(([label, key, color]) => <div className="completion-row" key={key}><div><span>{label}</span><strong>{completionFor(key)}%</strong></div><div className="completion-track"><span className="completion-fill" style={{ width: '100%', '--target-width': `${Math.min(completionFor(key), 100)}%`, background: color }} /></div></div>)}
         </section>
 
         <p className="goal-note">Small, consistent steps add up. Keep tracking to stay on course.</p>

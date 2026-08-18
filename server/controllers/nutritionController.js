@@ -1,6 +1,6 @@
 import { analyzeFoodImage } from '../services/geminiService.js';
 import { randomUUID } from 'node:crypto';
-import { listMeals, saveMeal, saveScan } from '../services/mongoService.js';
+import { calculateStreak, listMeals, saveMeal, saveScan } from '../services/mongoService.js';
 
 export const scanFood = async (req, res, next) => {
   try {
@@ -39,14 +39,7 @@ export const getNutritionHistory = async (req, res, next) => {
       return sum;
     }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-    const dayKeys = new Set(logs.map((meal) => new Date(meal.createdAt).toISOString().slice(0, 10)));
-    let streak = 0;
-    const cursor = new Date();
-    cursor.setUTCHours(0, 0, 0, 0);
-    while (dayKeys.has(cursor.toISOString().slice(0, 10))) {
-      streak += 1;
-      cursor.setUTCDate(cursor.getUTCDate() - 1);
-    }
+    const streak = await calculateStreak(req.user.id);
     res.status(200).json({
       success: true,
       summary: { totals, logCount: logs.length, streak },

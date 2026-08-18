@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bell, Check, ChevronRight, CircleUserRound, Globe2, HelpCircle, History, Home, LayoutDashboard, LogOut, Pencil, ScanLine, ShieldCheck, Target, UserRound, UsersRound, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import khanaLensLogo from "../assets/images/KhanaLens.jpg";
-import { getHistoryApi, getProfileApi, saveProfileApi, uploadProfilePictureApi } from "../services/api";
+import { getHistoryApi, getProfileApi, saveProfileApi } from "../services/api";
+import { FOOD_AVATARS, FoodAvatar } from "../components/FoodAvatar";
 
-const defaults = { name: "", email: "", phone: "", timezone: "Asia/Kathmandu", avatar: null, age: "", gender: "", height: "", currentWeight: "", targetWeight: "", activity: "", conditions: [], units: "Metric (kg, cm)", calorieGoal: 2000, proteinGoal: 120, carbsGoal: 250, fatGoal: 70 };
+const defaults = { name: "", email: "", phone: "", timezone: "Asia/Kathmandu", avatar: "taco", age: "", gender: "", height: "", currentWeight: "", targetWeight: "", activity: "", conditions: [], units: "Metric (kg, cm)", calorieGoal: 2000, proteinGoal: 120, carbsGoal: 250, fatGoal: 70 };
 const groups = [
   { title: "YOUR PLAN", items: [{ id: "personal", icon: UserRound, label: "Personal information", description: "Body details" }, { id: "targetWeight", icon: Target, label: "Target weight", description: "Set your goal weight" }, { id: "conditions", icon: UsersRound, label: "Health conditions", description: "Optional health details" }] },
   { title: "PREFERENCES", items: [{ id: "units", icon: Globe2, label: "Units", description: "Metric (kg, cm)" }, { id: "notifications", icon: Bell, label: "Notifications", description: "Daily reminders" }, { id: "privacy", icon: ShieldCheck, label: "Privacy policy", description: "How your data is used" }, { id: "support", icon: HelpCircle, label: "Help & support", description: "Get answers" }] },
@@ -17,7 +18,9 @@ const toImperialWeight = (kg) => Math.round(Number(kg || 0) * 2.20462 * 10) / 10
 const toMetricHeight = (inches) => Math.round(Number(inches || 0) / 0.393701 * 10) / 10;
 const toMetricWeight = (pounds) => Math.round(Number(pounds || 0) / 2.20462 * 10) / 10;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || min));
-
+function AvatarChooser({ avatar, onChange }) {
+  return <div className="food-avatar-editor"><strong>Choose your food avatar</strong><div className="food-avatar-grid">{FOOD_AVATARS.map((option) => <button type="button" key={option.id} className={`food-avatar-choice ${avatar === option.id ? "selected" : ""}`} onClick={() => onChange(option.id)} aria-label={`Choose ${option.label} avatar`}><FoodAvatar avatar={option.id} alt={option.label} /></button>)}</div><small>Your choice is stored as a small avatar ID—no image upload or storage space required.</small></div>;
+}
 export default function ProfileSettings() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -28,7 +31,7 @@ export default function ProfileSettings() {
   const [notifications, setNotifications] = useState(true);
   const [saved, setSaved] = useState(false);
   const [streak, setStreak] = useState(0);
-  const letters = useMemo(() => profile.avatar ? <img src={profile.avatar} alt={`${profile.name} profile`} /> : initials(profile.name), [profile.avatar, profile.name]);
+  const letters = useMemo(() => <FoodAvatar avatar={profile.avatar} alt={`${profile.name || "User"} food avatar`} />, [profile.avatar, profile.name]);
   const item = groups.flatMap((group) => group.items).find((entry) => entry.id === panel);
   const isImperial = draft.units === "Imperial (lb, in)";
   const displayedHeight = isImperial ? toImperialHeight(draft.height) : draft.height;
@@ -53,8 +56,15 @@ export default function ProfileSettings() {
 
   const persistProfile = (nextProfile) => {
     if (!user?.id) return;
-    localStorage.setItem(`nutrilens_profile:${user.id}`, JSON.stringify(nextProfile));
-    saveProfileApi(nextProfile).catch(() => {});
+    const normalizedProfile = {
+      ...nextProfile,
+      avatar: nextProfile.avatar === "sushi" ? "sushi" : "taco",
+      completed: Boolean(nextProfile.name && nextProfile.age && nextProfile.gender && nextProfile.height && nextProfile.currentWeight),
+    };
+    setProfile(normalizedProfile);
+    setDraft(normalizedProfile);
+    localStorage.setItem(`nutrilens_profile:${user.id}`, JSON.stringify(normalizedProfile));
+    saveProfileApi(normalizedProfile).catch(() => {});
   };
 
   const close = () => { setEditing(false); setPanel(null); };
@@ -77,22 +87,6 @@ export default function ProfileSettings() {
     setProfile(nextProfile);
     persistProfile(nextProfile);
     close(); setSaved(true); window.setTimeout(() => setSaved(false), 2200);
-  };
-  const chooseAvatar = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('image', file);
-    try {
-      const response = await uploadProfilePictureApi(formData);
-      setDraft((current) => ({ ...current, avatar: response.data.data.url }));
-      return;
-    } catch {
-      // Keep the local preview available if Firebase is temporarily unavailable.
-    }
-    const reader = new FileReader();
-    reader.onload = () => setDraft({ ...draft, avatar: reader.result });
-    reader.readAsDataURL(file);
   };
   const saveField = (event, field, value) => { event.preventDefault(); const nextProfile = { ...profile, [field]: value }; setProfile(nextProfile); persistProfile(nextProfile); close(); setSaved(true); window.setTimeout(() => setSaved(false), 2200); };
   const signOut = () => { logout(); navigate("/login"); };
@@ -156,7 +150,7 @@ export default function ProfileSettings() {
 
     {saved && <div className="profile-toast"><Check size={14} /> Profile updated</div>}
     {(editing || panel) && <div className="profile-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}><section className="profile-modal" role="dialog" aria-modal="true" aria-label={editing ? "Edit profile" : item?.label}><div className="profile-modal-header"><h2>{editing ? "Edit profile" : item?.label}</h2><button className="profile-modal-close" type="button" onClick={close} aria-label="Close"><X size={17} /></button></div>
-      {editing && <form onSubmit={save}><div className="profile-picture-picker"><div className="profile-picture-preview">{draft.avatar ? <img src={draft.avatar} alt="Selected profile preview" /> : initials(draft.name)}</div><div className="profile-picture-copy"><strong>Profile picture</strong>JPG, PNG, or WebP · choose a clear image.<input className="profile-picture-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} /></div></div><label className="profile-form-label" htmlFor="profile-name">Full name</label><input className="profile-form-input" id="profile-name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /><label className="profile-form-label" htmlFor="profile-email">Email address</label><input className="profile-form-input profile-readonly-input" id="profile-email" type="email" value={draft.email} readOnly aria-readonly="true" title="Email address cannot be changed here" /><small style={{ display: "block", marginTop: 4, color: "#78958a", fontSize: 10 }}>Email is linked to your account and cannot be changed here.</small><label className="profile-form-label" htmlFor="profile-activity">Activity level</label><select className="profile-form-select" id="profile-activity" value={draft.activity} onChange={(event) => setDraft({ ...draft, activity: event.target.value })}><option>Light</option><option>Moderate</option><option>Very active</option></select><label className="profile-form-label" htmlFor="profile-goal">Daily calorie goal</label><input className="profile-form-input" id="profile-goal" type="number" min="1000" max="6000" step="50" value={draft.calorieGoal} onChange={(event) => setDraft({ ...draft, calorieGoal: event.target.value })} /><button className="profile-save" type="submit">Save changes</button></form>}
+      {editing && <AvatarChooser avatar={draft.avatar} onChange={(avatar) => setDraft({ ...draft, avatar })} />} {editing && <form onSubmit={save}><div className="profile-picture-picker"><div className="profile-picture-preview">{draft.avatar ? <img src={draft.avatar} alt="Selected profile preview" /> : initials(draft.name)}</div><div className="profile-picture-copy"><strong>Profile picture</strong>JPG, PNG, or WebP · choose a clear image.<input className="profile-picture-input" type="file" accept="image/png,image/jpeg,image/webp" /></div></div><label className="profile-form-label" htmlFor="profile-name">Full name</label><input className="profile-form-input" id="profile-name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /><label className="profile-form-label" htmlFor="profile-email">Email address</label><input className="profile-form-input profile-readonly-input" id="profile-email" type="email" value={draft.email} readOnly aria-readonly="true" title="Email address cannot be changed here" /><small style={{ display: "block", marginTop: 4, color: "#78958a", fontSize: 10 }}>Email is linked to your account and cannot be changed here.</small><label className="profile-form-label" htmlFor="profile-activity">Activity level</label><select className="profile-form-select" id="profile-activity" value={draft.activity} onChange={(event) => setDraft({ ...draft, activity: event.target.value })}><option>Light</option><option>Moderate</option><option>Very active</option></select><label className="profile-form-label" htmlFor="profile-goal">Daily calorie goal</label><input className="profile-form-input" id="profile-goal" type="number" min="1000" max="6000" step="50" value={draft.calorieGoal} onChange={(event) => setDraft({ ...draft, calorieGoal: event.target.value })} /><button className="profile-save" type="submit">Save changes</button></form>}
       {!editing && panel === "targetWeight" && <form onSubmit={(event) => saveField(event, "targetWeight", isImperial ? toMetricWeight(draft.targetWeight) : Number(draft.targetWeight) || profile.targetWeight)}><p className="profile-info-copy">Set the weight you want to work toward. Your current weight stays separate so progress can be measured over time.</p><label className="profile-form-label" htmlFor="target-weight-input">Target weight ({isImperial ? "lb" : "kg"})</label><input className="profile-form-input" id="target-weight-input" type="number" min={isImperial ? "55" : "25"} max={isImperial ? "882" : "400"} step="0.1" value={displayedTargetWeight} onChange={(event) => setDraft({ ...draft, targetWeight: isImperial ? toMetricWeight(event.target.value) : event.target.value })} required /><button className="profile-save" type="submit">Save target weight</button></form>}
       {!editing && panel === "conditions" && <form onSubmit={(event) => saveField(event, "conditions", draft.conditions || [])}><p className="profile-info-copy">Tell us about any health conditions so future KhanaLens features can personalize your nutrition guidance.</p><label className="profile-condition-option"><input type="checkbox" checked={(draft.conditions || []).includes("None")} onChange={(event) => setDraft({ ...draft, conditions: event.target.checked ? ["None"] : [] })} /> <span>No known conditions</span></label>{["Diabetes", "High blood pressure", "High cholesterol", "Food allergies", "Other"].map((condition) => <label className="profile-condition-option" key={condition}><input type="checkbox" disabled={(draft.conditions || []).includes("None")} checked={(draft.conditions || []).includes(condition)} onChange={(event) => { const current = draft.conditions || []; setDraft({ ...draft, conditions: event.target.checked ? [...current.filter((value) => value !== "None"), condition] : current.filter((value) => value !== condition) }); }} /> <span>{condition}</span></label>)}<button className="profile-save" type="submit">Save health details</button></form>}
       {!editing && panel === "units" && <form onSubmit={(event) => saveField(event, "units", draft.units)}><p className="profile-info-copy">Choose the measurements you prefer to see throughout the app.</p><label className="profile-form-label" htmlFor="units-panel-select">Measurement system</label><select className="profile-form-select" id="units-panel-select" value={draft.units} onChange={(event) => setDraft({ ...draft, units: event.target.value })}><option>Metric (kg, cm)</option><option>Imperial (lb, in)</option></select><button className="profile-save" type="submit">Save units</button></form>}

@@ -11,36 +11,27 @@ import {
   History,
   User,
 } from "lucide-react";
-import { getTrackedMeals } from "../services/tracker";
-import { useAuth } from "../hooks/useAuth";
+import { getProgressApi } from "../services/api";
+import mealImage from "../assets/images/HealthyFood-2.jpg";
 
 function Progress() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals(user?.id));
+  const [progress, setProgress] = useState(null);
+  const [progressError, setProgressError] = useState('');
   useEffect(() => {
-    const syncTrackedMeals = () => setTrackedMeals(getTrackedMeals(user?.id));
-    window.addEventListener("nutrilens-tracker-updated", syncTrackedMeals);
-    window.addEventListener("storage", syncTrackedMeals);
-    return () => {
-      window.removeEventListener("nutrilens-tracker-updated", syncTrackedMeals);
-      window.removeEventListener("storage", syncTrackedMeals);
-    };
-  }, [user?.id]);
-  const trackedTotals = trackedMeals.reduce((totals, meal) => ({
-    calories: totals.calories + Number(meal.calories || 0),
-    protein: totals.protein + Number(meal.protein || 0),
-    carbs: totals.carbs + Number(meal.carbs || 0),
-    fat: totals.fat + Number(meal.fats ?? meal.fat ?? 0),
-  }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-  // Calorie data
+    getProgressApi('week')
+      .then((response) => setProgress(response.data.data))
+      .catch(() => setProgressError('Unable to load your nutrition progress.'));
+  }, []);
+  const today = progress?.today || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, meals: [] };
+  const goals = progress?.goals || { calories: 2000, protein: 120, carbs: 250, fat: 70, fiber: 30 };
   const calorieData = {
-    consumed: trackedTotals.calories,
-    goal: 2200,
+    consumed: Math.round(today.calories),
+    goal: goals.calories,
   };
 
   // Actual progress percentage
-  const pct = calorieData.consumed / calorieData.goal;
+  const pct = calorieData.goal > 0 ? Math.min(calorieData.consumed / calorieData.goal, 1) : 0;
 
   // Circular progress settings
   const radius = 50;
@@ -50,73 +41,36 @@ function Progress() {
   const nutrients = [
     {
       label: "Protein",
-      value: 95 + trackedTotals.protein,
-      goal: 140,
+      value: Math.round(today.protein),
+      goal: goals.protein,
       unit: "g",
       color: "#14B8A6",
     },
     {
       label: "Carbohydrates",
-      value: 180 + trackedTotals.carbs,
-      goal: 250,
+      value: Math.round(today.carbs),
+      goal: goals.carbs,
       unit: "g",
       color: "#F59E0B",
     },
     {
       label: "Fat",
-      value: 52 + trackedTotals.fat,
-      goal: 70,
+      value: Math.round(today.fat),
+      goal: goals.fat,
       unit: "g",
       color: "#8B5CF6",
     },
     {
       label: "Fiber",
-      value: 21,
-      goal: 30,
+      value: Math.round(today.fiber),
+      goal: goals.fiber,
       unit: "g",
       color: "#22C55E",
     },
   ];
 
   // Today's meals
-  const todaysMeals = [
-    {
-      id: 1,
-      name: "Chicken & Rice",
-      kcal: 520,
-      items: 3,
-      time: "12:30 PM",
-      image:
-        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200",
-    },
-    {
-      id: 2,
-      name: "Greek Yogurt & Berries",
-      kcal: 280,
-      items: 2,
-      time: "4:00 PM",
-      image:
-        "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=200",
-    },
-    {
-      id: 3,
-      name: "Chicken Salad",
-      kcal: 430,
-      items: 4,
-      time: "6:30 PM",
-      image:
-        "https://images.unsplash.com/photo-1546793665-c74683f339c1?w=200",
-    },
-    {
-      id: 4,
-      name: "Fruit Bowl",
-      kcal: 210,
-      items: 4,
-      time: "8:00 PM",
-      image:
-        "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=200",
-    },
-  ];
+  const todaysMeals = today.meals.map((meal) => ({ ...meal, kcal: Math.round(meal.calories), time: new Date(meal.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) }));
 
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
@@ -407,7 +361,7 @@ function Progress() {
               margin: "4px 0 20px",
             }}
           >
-            14 May 2024
+            {new Date().toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
 
           {calendarOpen && (
@@ -520,10 +474,7 @@ function Progress() {
           {/* Nutrients */}
           <div className="knl-nutrients-card">
             {nutrients.map((n, index) => {
-              const nPct = Math.min(
-                (n.value / n.goal) * 100,
-                100
-              );
+              const nPct = n.goal > 0 ? Math.min((n.value / n.goal) * 100, 100) : 0;
 
               return (
                 <div
@@ -635,13 +586,15 @@ function Progress() {
 
             {/* Meals - no internal scrollbar */}
             <div className="knl-meals-list">
+              {progressError && <p style={{ color: '#b45309', fontSize: 12, textAlign: 'center' }}>{progressError}</p>}
+              {!progressError && todaysMeals.length === 0 && <p style={{ color: '#718E86', fontSize: 12, textAlign: 'center', padding: '12px 0' }}>No meals saved today yet.</p>}
               {todaysMeals.map((meal) => (
                 <div
                   key={meal.id}
                   className="knl-meal-card"
                 >
                   <img
-                    src={meal.image}
+                    src={meal.image || mealImage}
                     alt={meal.name}
                     className="knl-meal-image"
                   />
