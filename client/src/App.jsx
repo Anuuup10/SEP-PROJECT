@@ -14,6 +14,7 @@ import Progress from './pages/Progress';
 import History from './pages/History';
 import Setting from './pages/Setting';
 import ProfileSetup from './pages/ProfileSetup';
+import MealPlanner from './pages/MealPlanner';
 
 function ResultRoute() {
   const location = useLocation();
@@ -61,6 +62,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
         <Route path="/profile" element={<Setting />} />
         <Route path="/profile/setup" element={<ProfileSetup />} />
+        <Route path="/meal-plan" element={<MealPlanner />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
