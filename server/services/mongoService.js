@@ -40,6 +40,35 @@ const dayLabel = (date, days) => days <= 7
   ? new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: appTimeZone }).format(date)
   : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: appTimeZone }).format(date);
 
+const sumItemNutrition = (items = []) => items.reduce((sum, item) => ({
+  calories: sum.calories + Number(item.calories ?? item.kcal ?? 0),
+  protein: sum.protein + Number(item.protein ?? 0),
+  carbs: sum.carbs + Number(item.carbohydrates ?? item.carbs ?? 0),
+  fat: sum.fat + Number(item.fat ?? item.fats ?? 0),
+  fiber: sum.fiber + Number(item.fiber ?? 0),
+  sodium: sum.sodium + Number(item.sodium ?? 0),
+}), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0 });
+
+const firstNutritionValue = (...values) => {
+  const numbers = values.map((value) => Number(value)).filter(Number.isFinite);
+  return numbers.find((value) => value > 0) ?? numbers[0] ?? 0;
+};
+
+// Support both the current nested `totals` shape and older saved meals that
+// stored compatibility fields at the top level.
+const getMealTotals = (meal) => {
+  const stored = meal.totals || {};
+  const itemTotals = sumItemNutrition(meal.items);
+  return {
+    calories: firstNutritionValue(stored.calories, meal.totalKcal, meal.totalCalories, meal.calories, itemTotals.calories),
+    protein: firstNutritionValue(stored.protein, meal.protein, meal.macros?.protein, itemTotals.protein),
+    carbs: firstNutritionValue(stored.carbohydrates, stored.carbs, meal.carbs, meal.macros?.carbs, itemTotals.carbs),
+    fat: firstNutritionValue(stored.fat, meal.fat, meal.fats, meal.macros?.fat, itemTotals.fat),
+    fiber: firstNutritionValue(stored.fiber, meal.fiber, itemTotals.fiber),
+    sodium: firstNutritionValue(stored.sodium, meal.sodium, itemTotals.sodium),
+  };
+};
+
 export const getProgress = async ({ userId, period = 'week' }) => {
   const daysCount = periodDays[period] || periodDays.week;
   const todayKey = dateKey(new Date());
@@ -63,14 +92,14 @@ export const getProgress = async ({ userId, period = 'week' }) => {
   for (const meal of meals) {
     const day = byDay.get(dateKey(meal.createdAt));
     if (!day) continue;
-    const totals = meal.totals || {};
-    const fiber = Number(totals.fiber || (meal.items || []).reduce((sum, item) => sum + Number(item.fiber || 0), 0));
-    day.calories += Number(totals.calories || 0);
-    day.protein += Number(totals.protein || 0);
-    day.carbs += Number(totals.carbohydrates ?? totals.carbs ?? 0);
-    day.fat += Number(totals.fat || 0);
+    const totals = getMealTotals(meal);
+    const fiber = totals.fiber;
+    day.calories += totals.calories;
+    day.protein += totals.protein;
+    day.carbs += totals.carbs;
+    day.fat += totals.fat;
     day.fiber += fiber;
-    day.meals.push({ id: meal._id.toString(), name: meal.mealName, calories: totals.calories || 0, protein: totals.protein || 0, carbs: totals.carbohydrates ?? totals.carbs ?? 0, fat: totals.fat || 0, fiber, sodium: totals.sodium || 0, totals, items: meal.items?.length || 0, image: meal.image, createdAt: meal.createdAt });
+    day.meals.push({ id: meal._id.toString(), name: meal.mealName, calories: totals.calories, protein: totals.protein, carbs: totals.carbs, fat: totals.fat, fiber, sodium: totals.sodium, totals, items: meal.items?.length || 0, image: meal.image, createdAt: meal.createdAt });
   }
 
   const days = [...byDay.values()];

@@ -87,16 +87,16 @@ export const Home = () => {
   const progressCacheKey = useMemo(() => `nutrilens_progress:${user?.id || 'guest'}`, [user?.id]);
   const [nutritionProgress, setNutritionProgress] = useState(() => {
     try {
-      const saved = localStorage.getItem(`nutrilens_progress:${user?.id || 'guest'}`);
-      return saved ? JSON.parse(saved) : null;
+      const cached = localStorage.getItem(`nutrilens_progress:${user?.id || 'guest'}`);
+      return cached ? JSON.parse(cached) : null;
     } catch {
       return null;
     }
   });
   const [selectedProgressDate, setSelectedProgressDate] = useState(() => {
     try {
-      const saved = localStorage.getItem(`nutrilens_progress:${user?.id || 'guest'}`);
-      const parsed = saved ? JSON.parse(saved) : null;
+      const cached = localStorage.getItem(`nutrilens_progress:${user?.id || 'guest'}`);
+      const parsed = cached ? JSON.parse(cached) : null;
       return parsed?.days?.[parsed.days.length - 1]?.date || null;
     } catch {
       return null;
@@ -120,7 +120,7 @@ export const Home = () => {
     getHistory()
       .then(setHistory)
       .catch(() => {
-        if (retryCount < 2) setTimeout(() => fetchDashboardData(retryCount + 1), 1500);
+        if (retryCount < 2) setTimeout(() => fetchDashboardData(retryCount + 1), 1200);
       });
 
     getProgressApi('week')
@@ -133,7 +133,7 @@ export const Home = () => {
         }
       })
       .catch(() => {
-        if (retryCount < 2) setTimeout(() => fetchDashboardData(retryCount + 1), 1500);
+        if (retryCount < 2) setTimeout(() => fetchDashboardData(retryCount + 1), 1200);
       });
 
     getProfileApi()
@@ -210,7 +210,6 @@ export const Home = () => {
     };
     return base;
   }, [nutritionProgress, selectedDay, goalOverride, profile?.calorieGoal, profile?.proteinGoal, profile?.carbsGoal, profile?.fatGoal]);
-
 
   const trackedMealRows = trackedMeals.map((meal) => ({
     _id: meal.id,

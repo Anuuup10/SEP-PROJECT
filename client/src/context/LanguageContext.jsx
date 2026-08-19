@@ -51,8 +51,12 @@ function translateDocument(language) {
   nodes.forEach((node) => {
     const parent = node.parentElement;
     if (!parent || ['SCRIPT', 'STYLE'].includes(parent.tagName) || parent.closest('[data-no-translate]')) return;
-    if (!node.__khanalensOriginal) node.__khanalensOriginal = node.nodeValue;
-    node.nodeValue = translateText(node.__khanalensOriginal, language);
+    if (language === 'ne') {
+      if (!node.__khanalensOriginal) node.__khanalensOriginal = node.nodeValue;
+      node.nodeValue = translateText(node.__khanalensOriginal, language);
+    } else if (node.__khanalensOriginal) {
+      node.nodeValue = node.__khanalensOriginal;
+    }
   });
   document.documentElement.lang = language === 'ne' ? 'ne' : 'en';
 }
@@ -64,13 +68,16 @@ export function LanguageProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, language);
     translateDocument(language);
-    const observer = new MutationObserver(() => translateDocument(language));
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    if (language === 'ne') {
+      const observer = new MutationObserver(() => translateDocument(language));
+      observer.observe(document.body, { childList: true, subtree: true });
+      return () => observer.disconnect();
+    }
   }, [language]);
 
   return <LanguageContext.Provider value={{ language, setLanguage, t: (value) => translateText(value, language) }}>{children}</LanguageContext.Provider>;
 }
+
 
 export function useLanguage() {
   const value = useContext(LanguageContext);
