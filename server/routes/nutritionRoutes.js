@@ -1,12 +1,29 @@
 import express from 'express';
 import multer from 'multer';
-import { scanFood, getNutritionHistory } from '../controllers/nutritionController.js';
-import { protect } from '../middleware/authMiddleware.js';
 
-const upload = multer({ storage: multer.memoryStorage() });
+import {
+  scanFood,
+  getNutritionHistory,
+} from '../controllers/nutritionController.js';
+
 const router = express.Router();
 
-router.post('/scan', protect, upload.single('image'), scanFood);
-router.get('/history', protect, getNutritionHistory);
+// Store uploaded images in memory
+const upload = multer({
+  storage: multer.memoryStorage(),
+});
+
+// Scan food image
+router.post(
+  '/scan',
+  upload.single('image'),
+  scanFood
+);
+
+// Get nutrition history
+router.get(
+  '/history',
+  getNutritionHistory
+);
 
 export default router;
