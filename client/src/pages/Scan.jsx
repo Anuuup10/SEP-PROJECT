@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera as CameraIcon, Image as ImageIcon, Loader2, Sparkles, X, Zap } from 'lucide-react';
+import { Camera as CameraIcon, Image as ImageIcon, Loader2, RotateCcw, Sparkles, X, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useNutrition } from '../hooks/useNutrition';
 import { compressFoodImage } from '../services/imageCompression';
@@ -20,8 +20,10 @@ export const Scan = () => {
   const navigate = useNavigate();
 
   const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
     setCameraActive(false);
   };
 
@@ -43,10 +45,9 @@ export const Scan = () => {
           video: { ...videoOptions, facingMode: { exact: requestedFacingMode } },
           audio: false,
         });
-      } catch (error) {
+      } catch (err) {
         // Some browsers do not expose facingMode constraints. Keep scanning
-        // usable there, while preferring the requested camera whenever possible.
-        if (error.name !== 'OverconstrainedError' && error.name !== 'ConstraintNotSatisfiedError') throw error;
+        if (err.name !== 'OverconstrainedError' && err.name !== 'ConstraintNotSatisfiedError') throw err;
         stream = await navigator.mediaDevices.getUserMedia({
           video: { ...videoOptions, facingMode: { ideal: requestedFacingMode } },
           audio: false,
@@ -54,6 +55,7 @@ export const Scan = () => {
       }
       streamRef.current = stream;
       setCameraActive(true);
+      setCameraMessage('');
       window.setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -68,14 +70,18 @@ export const Scan = () => {
 
   useEffect(() => {
     let cachedProfile = null;
-    try { cachedProfile = JSON.parse(localStorage.getItem(`nutrilens_profile:${localStorage.getItem('nutrilens_user') ? JSON.parse(localStorage.getItem('nutrilens_user')).id : ''}`) || 'null'); } catch { cachedProfile = null; }
+    try {
+      cachedProfile = JSON.parse(localStorage.getItem(`nutrilens_profile:${localStorage.getItem('nutrilens_user') ? JSON.parse(localStorage.getItem('nutrilens_user')).id : ''}`) || 'null');
+    } catch {
+      cachedProfile = null;
+    }
     const hasRequiredDetails = (profile) => Boolean(profile?.age && profile?.gender && profile?.height && profile?.currentWeight);
     if (hasRequiredDetails(cachedProfile)) setProfileReady(true);
     getProfileApi().then((response) => {
       const profile = response.data.data;
       const ready = hasRequiredDetails(profile) || hasRequiredDetails(cachedProfile);
       setProfileReady(ready);
-      if (ready) startCamera();
+      if (ready && !preview) startCamera();
     }).catch(() => setProfileReady(hasRequiredDetails(cachedProfile)));
     return () => stopCamera();
   }, []);
@@ -83,14 +89,18 @@ export const Scan = () => {
   const handleFile = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    stopCamera();
     setSelectedFile(file);
     setPreview(URL.createObjectURL(file));
     setCameraMessage('');
     setScanResult(null);
+    event.target.value = '';
   };
 
-  const openCamera = () => {
-    if (streamRef.current) return;
+  const handleRetake = () => {
+    setSelectedFile(null);
+    setPreview(null);
+    setScanResult(null);
     startCamera(facingMode);
   };
 
@@ -114,15 +124,14 @@ export const Scan = () => {
     canvas.toBlob((blob) => {
       if (!blob) return;
       const file = new File([blob], 'food-capture.jpg', { type: 'image/jpeg' });
+      stopCamera();
       setSelectedFile(file);
       setPreview(URL.createObjectURL(file));
-      stopCamera();
-    }, 'image/jpeg', .9);
+    }, 'image/jpeg', 0.92);
   };
 
   const handleAnalyze = async () => {
-    if (!profileReady) return;
-    if (!selectedFile) return;
+    if (!profileReady || !selectedFile || loading) return;
     try {
       const compressedImage = await compressFoodImage(selectedFile);
       const response = await scanFood(compressedImage);
@@ -130,56 +139,138 @@ export const Scan = () => {
       setScanResult(result);
       navigate('/scan/result', { state: { result } });
     } catch {
-      // Keep the scanner open and show the real API error. Never replace a failed
-      // scan with demo nutrition data.
       setScanResult(null);
     }
   };
 
   if (profileReady !== true) {
-    return <div className="scanner-viewport"><div className="scanner-screen scanner-profile-gate"><div><strong>{profileReady === null ? 'Checking your profile…' : 'Complete your profile first'}</strong><p>{profileReady === null ? 'Please wait a moment.' : 'Age, gender, height, and current weight are required before food scanning.'}</p>{profileReady === false && <Link to="/profile">Set your profile&nbsp; →</Link>}</div></div></div>;
+    return (
+      <div className="scanner-viewport">
+        <div className="scanner-screen scanner-profile-gate">
+          <div>
+            <strong>{profileReady === null ? 'Checking your profile…' : 'Complete your profile first'}</strong>
+            <p>{profileReady === null ? 'Please wait a moment.' : 'Age, gender, height, and current weight are required before food scanning.'}</p>
+            {profileReady === false && <Link to="/profile">Set your profile&nbsp; →</Link>}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="scanner-viewport">
       <div className="scanner-screen">
         <div className="scanner-preview">
-          {preview ? <img className="scanner-food-image has-preview" src={preview} alt="Selected food preview" /> : <div className="scanner-camera-placeholder"><CameraIcon size={42} /><strong>Camera preview</strong><span>{cameraMessage || 'Starting your camera…'}</span></div>}
-          {cameraActive && <video ref={videoRef} className="scanner-video" autoPlay playsInline muted />}
+          {preview ? (
+            <div className="scanner-image-preview-wrap">
+              <img className="scanner-food-image has-preview" src={preview} alt="Selected food preview" />
+              <div className="scanner-preview-tag">
+                <Sparkles size={14} />
+                <span>Photo Ready to Scan</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              {cameraActive ? (
+                <video ref={videoRef} className="scanner-video" autoPlay playsInline muted />
+              ) : (
+                <div className="scanner-camera-placeholder">
+                  <CameraIcon size={42} />
+                  <strong>Camera preview</strong>
+                  <span>{cameraMessage || 'Starting your camera…'}</span>
+                </div>
+              )}
+            </>
+          )}
+
           <div className="scanner-shade" />
 
           <div className="scanner-topbar">
             <Link to="/home" className="scanner-round-button" aria-label="Close scanner"><X size={22} /></Link>
-            <button className={`scanner-round-button ${flashOn ? 'flash-active' : ''}`} onClick={() => setFlashOn((value) => !value)} aria-label="Toggle flash"><Zap size={20} /></button>
+            {preview ? (
+              <button className="scanner-retake-top-button" onClick={handleRetake} aria-label="Retake photo" type="button">
+                <RotateCcw size={14} />
+                <span>Retake</span>
+              </button>
+            ) : (
+              <button className={`scanner-round-button ${flashOn ? 'flash-active' : ''}`} onClick={() => setFlashOn((value) => !value)} aria-label="Toggle flash" type="button">
+                <Zap size={20} />
+              </button>
+            )}
           </div>
 
-          <div className="scanner-frame" aria-hidden="true"><span /><span /><span /><span /></div>
-          <div className="scanner-hint">Center your food in the frame</div>
+          <div className={`scanner-frame ${preview ? 'has-preview-frame' : ''}`} aria-hidden="true">
+            <span /><span /><span /><span />
+          </div>
 
-          {loading && <div className="scanner-analysis-overlay" role="status" aria-live="polite">
-            <div className="scanner-analysis-orbit"><span>🍽️</span><i /><i /><i /></div>
-            <strong>Reading your meal</strong>
-            <span>Identifying ingredients and nutrients<span className="scanner-analysis-dots">...</span></span>
-          </div>}
+          <div className="scanner-hint">
+            {preview ? 'Tap Scan Food below to analyze nutrition' : 'Center your food in the frame'}
+          </div>
+
+          {loading && (
+            <div className="scanner-analysis-overlay" role="status" aria-live="polite">
+              <div className="scanner-analysis-orbit">
+                <span>🍽️</span>
+                <i /><i /><i />
+              </div>
+              <strong>Reading your meal</strong>
+              <span>Identifying ingredients and nutrients<span className="scanner-analysis-dots">...</span></span>
+            </div>
+          )}
+
           {scanResult && <div className="scanner-result"><Sparkles size={16} /> {scanResult.foodName || 'Meal analyzed successfully'}</div>}
           {error && <div className="scanner-error">{error}</div>}
         </div>
 
-        <div className="scanner-controls">
-          <div className="scanner-side-control">
-            <label htmlFor="gallery-file-input" className="scanner-action-button"><ImageIcon size={24} /></label>
-            <span>Gallery</span>
-            <input id="gallery-file-input" type="file" accept="image/*" onChange={handleFile} />
+        {preview ? (
+          <div className="scanner-preview-controls">
+            <button className="scanner-preview-btn-cancel" onClick={handleRetake} type="button" disabled={loading}>
+              <RotateCcw size={17} />
+              <span>Retake</span>
+            </button>
+
+            <button className="scanner-preview-btn-scan" onClick={handleAnalyze} type="button" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 size={19} className="scanner-spin" />
+                  <span>Scanning…</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={19} />
+                  <span>Scan Food</span>
+                </>
+              )}
+            </button>
+
+            <div className="scanner-side-control">
+              <label htmlFor="gallery-file-input-preview" className="scanner-action-button" aria-label="Choose different photo">
+                <ImageIcon size={22} />
+              </label>
+              <span>Gallery</span>
+              <input id="gallery-file-input-preview" type="file" accept="image/*" onChange={handleFile} />
+            </div>
           </div>
-          <button className="scanner-capture" onClick={selectedFile ? handleAnalyze : captureFrame} aria-label={selectedFile ? 'Analyze food' : 'Capture food'}>
-            <span>{selectedFile ? <Sparkles size={24} /> : <span className="capture-glow" />}</span>
-          </button>
-          <div className="scanner-side-control">
-            <button className="scanner-action-button" onClick={switchCamera} aria-label="Switch camera" type="button"><CameraIcon size={24} /></button>
-            <span>Switch</span>
-            <input id="camera-file-input" type="file" accept="image/*" capture="environment" onChange={handleFile} />
+        ) : (
+          <div className="scanner-controls">
+            <div className="scanner-side-control">
+              <label htmlFor="gallery-file-input" className="scanner-action-button" aria-label="Upload from gallery">
+                <ImageIcon size={24} />
+              </label>
+              <span>Gallery</span>
+              <input id="gallery-file-input" type="file" accept="image/*" onChange={handleFile} />
+            </div>
+            <button className="scanner-capture" onClick={captureFrame} aria-label="Capture food" type="button">
+              <span><span className="capture-glow" /></span>
+            </button>
+            <div className="scanner-side-control">
+              <button className="scanner-action-button" onClick={switchCamera} aria-label="Switch camera" type="button">
+                <CameraIcon size={24} />
+              </button>
+              <span>Switch</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

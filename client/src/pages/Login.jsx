@@ -106,7 +106,7 @@ export default function Login({ initialSignup = false }) {
     try {
       const response = await firebaseSignUp(signupEmail, signupPassword, name);
       login(response.token, response.user);
-      navigate("/home");
+      navigate("/profile/setup");
     } catch (error) {
       setErrors({ form: error.message || "Unable to create your account." });
     } finally {
@@ -129,7 +129,7 @@ export default function Login({ initialSignup = false }) {
     try {
       const response = await firebaseSignInWithGoogle();
       login(response.token, response.user);
-      navigate("/home");
+      navigate("/profile/setup");
     } catch (error) {
       setErrors({ form: error.code === "auth/popup-closed-by-user" ? "Google sign-in was cancelled." : (error.message || "Unable to sign in with Google.") });
     } finally {

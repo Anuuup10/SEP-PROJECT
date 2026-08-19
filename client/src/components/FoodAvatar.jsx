@@ -8,7 +8,24 @@ export const FOOD_AVATARS = [
 ];
 
 export function FoodAvatar({ avatar = 'taco', className = '', alt = 'Food avatar' }) {
+  if (avatar && (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('/'))) {
+    return (
+      <span className={`food-avatar ${className}`} role="img" aria-label={alt}>
+        <img
+          className="food-avatar-image"
+          src={avatar}
+          alt=""
+          aria-hidden="true"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </span>
+    );
+  }
   const selected = avatar === 'sushi' ? 'sushi' : 'taco';
-  const option = FOOD_AVATARS.find((item) => item.id === selected);
-  return <span className={`food-avatar food-avatar-${selected} ${className}`} role="img" aria-label={alt}><img className="food-avatar-image" src={option.image} alt="" aria-hidden="true" /></span>;
+  const option = FOOD_AVATARS.find((item) => item.id === selected) || FOOD_AVATARS[0];
+  return (
+    <span className={`food-avatar food-avatar-${selected} ${className}`} role="img" aria-label={alt}>
+      <img className="food-avatar-image" src={option.image} alt="" aria-hidden="true" />
+    </span>
+  );
 }

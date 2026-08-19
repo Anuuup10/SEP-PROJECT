@@ -19,14 +19,14 @@ export default function ItemDetails({ item = defaultItem, onBack }) {
     name = defaultItem.name,
     portion = defaultItem.portion,
     kcal = defaultItem.kcal,
-    protein = defaultItem.protein,
-    carbs = defaultItem.carbs,
-    fiber = defaultItem.fiber,
-    sodium = defaultItem.sodium,
+    protein = item.totals?.protein ?? defaultItem.protein,
+    carbs = item.totals?.carbohydrates ?? item.totals?.carbs ?? defaultItem.carbs,
+    fiber = item.totals?.fiber ?? defaultItem.fiber,
+    sodium = item.totals?.sodium ?? defaultItem.sodium,
     image = item.image || defaultItem.image,
     nutritionFacts,
   } = item;
-  const fat = item.fats ?? defaultItem.fat;
+  const fat = item.fats ?? item.fat ?? item.totals?.fat ?? defaultItem.fat;
 
   const facts =
     nutritionFacts ?? [

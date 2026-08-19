@@ -17,10 +17,10 @@ export const saveMeal = async ({ userId, scanId }) => {
   const analysis = scan.analysis;
   const meal = await Meal.findOneAndUpdate(
     { userId, scanId },
-    { $setOnInsert: { userId, scanId, ...analysis, savedAt: new Date() } },
+    { $setOnInsert: { userId, scanId, ...analysis, createdAt: new Date(), savedAt: new Date() } },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
-  return { id: meal._id.toString(), ...analysis, createdAt: meal.createdAt.toISOString() };
+  return { id: meal._id.toString(), ...analysis, createdAt: (meal.createdAt || new Date()).toISOString() };
 };
 
 export const listMeals = async (userId) => {
@@ -45,9 +45,9 @@ export const getProgress = async ({ userId, period = 'week' }) => {
   const todayKey = dateKey(new Date());
   const firstDayKey = addDaysToKey(todayKey, -daysCount + 1);
   const start = new Date(`${firstDayKey}T00:00:00Z`);
-  start.setUTCDate(start.getUTCDate() - 1);
+  start.setUTCDate(start.getUTCDate() - 2);
   const end = new Date(`${todayKey}T23:59:59.999Z`);
-  end.setUTCDate(end.getUTCDate() + 1);
+  end.setUTCDate(end.getUTCDate() + 2);
 
   const [meals, profile] = await Promise.all([
     Meal.find({ userId, createdAt: { $gte: start, $lte: end } }).sort({ createdAt: 1 }).lean(),
@@ -70,7 +70,7 @@ export const getProgress = async ({ userId, period = 'week' }) => {
     day.carbs += Number(totals.carbohydrates ?? totals.carbs ?? 0);
     day.fat += Number(totals.fat || 0);
     day.fiber += fiber;
-    day.meals.push({ id: meal._id.toString(), name: meal.mealName, calories: totals.calories || 0, items: meal.items?.length || 0, image: meal.image, createdAt: meal.createdAt });
+    day.meals.push({ id: meal._id.toString(), name: meal.mealName, calories: totals.calories || 0, protein: totals.protein || 0, carbs: totals.carbohydrates ?? totals.carbs ?? 0, fat: totals.fat || 0, fiber, sodium: totals.sodium || 0, totals, items: meal.items?.length || 0, image: meal.image, createdAt: meal.createdAt });
   }
 
   const days = [...byDay.values()];

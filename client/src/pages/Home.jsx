@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Bell,
   Camera,
@@ -79,6 +79,7 @@ function MacroRow({ type, label, value, goal, color }) {
 
 export const Home = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { getHistory, loading } = useNutrition();
   const [history, setHistory] = useState({ summary: { totals: {} }, data: [] });
@@ -91,7 +92,7 @@ export const Home = () => {
   const [goalDraft, setGoalDraft] = useState({ calorieGoal: defaultSummary.calorieGoal, proteinGoal: defaultSummary.proteinGoal, carbsGoal: defaultSummary.carbsGoal, fatGoal: defaultSummary.fatGoal });
   const [goalEditorOpen, setGoalEditorOpen] = useState(false);
 
-  useEffect(() => {
+  const fetchDashboardData = () => {
     if (!user?.id) return;
     let cachedProfile = null;
     try { cachedProfile = JSON.parse(localStorage.getItem(`nutrilens_profile:${user.id}`) || 'null'); } catch { cachedProfile = null; }
@@ -112,24 +113,26 @@ export const Home = () => {
       setGoalOverride({ calorieGoal: Number(resolvedProfile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(resolvedProfile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(resolvedProfile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(resolvedProfile?.fatGoal || defaultSummary.fatGoal) });
       setGoalDraft({ calorieGoal: Number(resolvedProfile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(resolvedProfile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(resolvedProfile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(resolvedProfile?.fatGoal || defaultSummary.fatGoal) });
     }).catch(() => setProfile(cachedProfile)).finally(() => setProfileLoading(false));
-  }, [getHistory, user?.id]);
+  };
 
   useEffect(() => {
-    const syncTrackedMeals = () => setTrackedMeals(getTrackedMeals(user?.id));
+    fetchDashboardData();
+  }, [getHistory, user?.id, location.key]);
+
+  useEffect(() => {
+    const syncTrackedMeals = () => {
+      setTrackedMeals(getTrackedMeals(user?.id));
+      getHistory().then(setHistory).catch(() => {});
+      getProgressApi('week').then((response) => setNutritionProgress(response.data.data)).catch(() => {});
+    };
     window.addEventListener('nutrilens-tracker-updated', syncTrackedMeals);
     window.addEventListener('storage', syncTrackedMeals);
     return () => {
       window.removeEventListener('nutrilens-tracker-updated', syncTrackedMeals);
       window.removeEventListener('storage', syncTrackedMeals);
     };
-  }, [user?.id]);
+  }, [user?.id, getHistory]);
 
-  const trackedTotals = useMemo(() => trackedMeals.reduce((totals, meal) => ({
-    calories: totals.calories + Number(meal.calories || 0),
-    protein: totals.protein + Number(meal.protein || 0),
-    carbs: totals.carbs + Number(meal.carbs || 0),
-    fat: totals.fat + Number(meal.fats ?? meal.fat ?? 0),
-  }), { calories: 0, protein: 0, carbs: 0, fat: 0 }), [trackedMeals]);
   const progressDays = nutritionProgress?.days || [];
   const selectedDay = progressDays.find((day) => day.date === selectedProgressDate) || progressDays[progressDays.length - 1];
 
@@ -163,13 +166,38 @@ export const Home = () => {
     protein: Number(meal.protein ?? meal.totals?.protein ?? 0),
     carbs: Number(meal.carbs ?? meal.totals?.carbohydrates ?? 0),
     fats: Number(meal.fats ?? meal.totals?.fat ?? 0),
+    image: meal.image || meal.imageUrl,
   }));
-  const isSelectedToday = selectedDay?.date === progressDays[progressDays.length - 1]?.date;
+
+  const isSelectedPastDay = Boolean(selectedProgressDate && selectedDay && selectedDay.date !== progressDays[progressDays.length - 1]?.date);
   const selectedDayName = selectedDay ? new Date(`${selectedDay.date}T12:00:00Z`).toLocaleDateString([], { weekday: 'long' }) : 'Today';
-  const selectedDayMealRows = (selectedDay?.meals || []).map((meal) => ({ ...meal, _id: meal.id, foodName: meal.name || 'Saved meal', calories: Number(meal.calories || 0), itemCount: meal.items || 1 }));
-  // MongoDB is canonical once the save request completes. Local tracker data
-  // is only used as a temporary fallback before progress data loads.
-  const meals = selectedDay ? selectedDayMealRows.slice(0, 2) : (savedMealRows.length ? savedMealRows : trackedMealRows).slice(0, 2);
+  const selectedDayMealRows = (selectedDay?.meals || []).map((meal) => ({
+    ...meal,
+    _id: meal.id,
+    foodName: meal.name || 'Saved meal',
+    calories: Number(meal.calories ?? meal.totals?.calories ?? 0),
+    protein: Number(meal.protein ?? meal.totals?.protein ?? 0),
+    carbs: Number(meal.carbs ?? meal.totals?.carbohydrates ?? 0),
+    fats: Number(meal.fats ?? meal.fat ?? meal.totals?.fat ?? 0),
+    fiber: Number(meal.fiber ?? meal.totals?.fiber ?? 0),
+    sodium: Number(meal.sodium ?? meal.totals?.sodium ?? 0),
+    itemCount: meal.items || 1,
+    image: meal.image,
+  }));
+
+  const meals = useMemo(() => {
+    if (isSelectedPastDay) {
+      return selectedDayMealRows.slice(0, 5);
+    }
+    if (savedMealRows.length > 0) {
+      return savedMealRows.slice(0, 5);
+    }
+    if (selectedDayMealRows.length > 0) {
+      return selectedDayMealRows.slice(0, 5);
+    }
+    return trackedMealRows.slice(0, 5);
+  }, [isSelectedPastDay, selectedDayMealRows, savedMealRows, trackedMealRows]);
+
   const displayName = user?.name?.split(' ')[0] || 'there';
   const saveGoals = async () => {
     if (!profile) return;
@@ -187,11 +215,11 @@ export const Home = () => {
           name: meal.foodName || 'Recent meal',
           portion: `${meal.itemCount || 1} items`,
           kcal: Number(meal.calories || meal.kcal || 0),
-          protein: Number(meal.protein || 0),
-          carbs: Number(meal.carbs || 0),
-          fat: Number(meal.fats ?? meal.fat ?? 0),
-          fiber: Number(meal.fiber || 0),
-          sodium: Number(meal.sodium || 0),
+          protein: Number(meal.protein ?? meal.totals?.protein ?? 0),
+          carbs: Number(meal.carbs ?? meal.totals?.carbohydrates ?? 0),
+          fat: Number(meal.fats ?? meal.fat ?? meal.totals?.fat ?? 0),
+          fiber: Number(meal.fiber ?? meal.totals?.fiber ?? 0),
+          sodium: Number(meal.sodium ?? meal.totals?.sodium ?? 0),
           image: meal.image || mealImage,
           items: meal.items,
         },
@@ -227,8 +255,8 @@ export const Home = () => {
         </Link>
 
         <section className="dashboard-section">
-          <div className="section-heading"><h2>{isSelectedToday ? "Today's Summary" : `${selectedDayName}'s Summary`}</h2><button type="button" onClick={() => { setGoalDraft({ calorieGoal: summary.calorieGoal, proteinGoal: summary.proteinGoal, carbsGoal: summary.carbsGoal, fatGoal: summary.fatGoal }); setGoalEditorOpen(true); }}>Edit Goal</button></div>
-            <div className="summary-card">
+          <div className="section-heading"><h2>{!isSelectedPastDay ? "Today's Summary" : `${selectedDayName}'s Summary`}</h2><button type="button" onClick={() => { setGoalDraft({ calorieGoal: summary.calorieGoal, proteinGoal: summary.proteinGoal, carbsGoal: summary.carbsGoal, fatGoal: summary.fatGoal }); setGoalEditorOpen(true); }}>Edit Goal</button></div>
+          <div className="summary-card">
             <SummaryRing calories={summary.calories} goal={summary.calorieGoal} />
             <div className="macro-list">
               <MacroRow type="protein" label="Protein" value={summary.protein} goal={summary.proteinGoal} color="#55b99c" />
@@ -254,15 +282,27 @@ export const Home = () => {
         </section>
 
         <section className="dashboard-section recent-section">
-          <div className="section-heading"><h2>{isSelectedToday ? 'Recent Meals' : `Meals for ${selectedDayName}`}</h2><Link to="/history">See All</Link></div>
+          <div className="section-heading"><h2>{isSelectedPastDay ? `Meals for ${selectedDayName}` : 'Recent Meals'}</h2><Link to="/history">See All</Link></div>
           <div className="meal-list">
-            {loading && !history ? <div className="loading-row">Loading your meals…</div> : meals.map((meal, index) => (
-              <div className="meal-row" key={meal._id || `${meal.foodName}-${index}`} role="button" tabIndex="0" onClick={() => openMealDetails(meal)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openMealDetails(meal); }}>
-                <img src={meal.image || meal.imageUrl || mealImage} alt={meal.foodName || 'Recent meal'} />
-                <div className="meal-copy"><strong>{meal.foodName}</strong><span>{meal.calories} kcal&nbsp; · &nbsp;{meal.itemCount || 3} items</span></div>
-                <ChevronRight size={20} />
+            {loading && (!history?.data || history.data.length === 0) ? (
+              <div className="loading-row">Loading your meals…</div>
+            ) : meals.length === 0 ? (
+              <div className="dashboard-empty-meals">
+                <p>No meals recorded {isSelectedPastDay ? `for ${selectedDayName}` : 'yet'}.</p>
+                <Link to="/scan" className="dashboard-empty-scan-link">
+                  <Camera size={14} />
+                  <span>Scan your meal</span>
+                </Link>
               </div>
-            ))}
+            ) : (
+              meals.map((meal, index) => (
+                <div className="meal-row" key={meal._id || `${meal.foodName}-${index}`} role="button" tabIndex="0" onClick={() => openMealDetails(meal)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openMealDetails(meal); }}>
+                  <img src={meal.image || meal.imageUrl || mealImage} alt={meal.foodName || 'Recent meal'} />
+                  <div className="meal-copy"><strong>{meal.foodName}</strong><span>{Math.round(meal.calories)} kcal&nbsp; · &nbsp;{meal.itemCount || 1} {meal.itemCount === 1 ? 'item' : 'items'}</span></div>
+                  <ChevronRight size={20} />
+                </div>
+              ))
+            )}
           </div>
         </section>
 

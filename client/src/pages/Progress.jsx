@@ -17,21 +17,38 @@ import mealImage from "../assets/images/HealthyFood-2.jpg";
 function Progress() {
   const navigate = useNavigate();
   const [progress, setProgress] = useState(null);
-  const [progressError, setProgressError] = useState('');
+  const [progressError, setProgressError] = useState("");
   useEffect(() => {
-    getProgressApi('week')
+    getProgressApi("week")
       .then((response) => setProgress(response.data.data))
-      .catch(() => setProgressError('Unable to load your nutrition progress.'));
+      .catch(() => setProgressError("Unable to load your nutrition progress."));
   }, []);
-  const today = progress?.today || { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, meals: [] };
-  const goals = progress?.goals || { calories: 2000, protein: 120, carbs: 250, fat: 70, fiber: 30 };
+
+  const today = progress?.today || {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    fiber: 0,
+    meals: [],
+  };
+  const goals = progress?.goals || {
+    calories: 2000,
+    protein: 120,
+    carbs: 250,
+    fat: 70,
+    fiber: 30,
+  };
   const calorieData = {
     consumed: Math.round(today.calories),
     goal: goals.calories,
   };
 
   // Actual progress percentage
-  const pct = calorieData.goal > 0 ? Math.min(calorieData.consumed / calorieData.goal, 1) : 0;
+  const pct =
+    calorieData.goal > 0
+      ? Math.min(calorieData.consumed / calorieData.goal, 1)
+      : 0;
 
   // Circular progress settings
   const radius = 50;
@@ -70,7 +87,14 @@ function Progress() {
   ];
 
   // Today's meals
-  const todaysMeals = today.meals.map((meal) => ({ ...meal, kcal: Math.round(meal.calories), time: new Date(meal.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) }));
+  const todaysMeals = today.meals.map((meal) => ({
+    ...meal,
+    kcal: Math.round(meal.calories),
+    time: new Date(meal.createdAt).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+  }));
 
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
@@ -85,15 +109,10 @@ function Progress() {
   const [ringProgress, setRingProgress] = useState(0);
 
   useEffect(() => {
-    // Start at 0%
     setRingProgress(0);
-
-    // Fill to 100%
     const fillTimer = setTimeout(() => {
       setRingProgress(1);
     }, 150);
-
-    // Settle back to actual percentage
     const settleTimer = setTimeout(() => {
       setRingProgress(pct);
     }, 900);
@@ -121,7 +140,7 @@ function Progress() {
           width: 100%;
           display: flex;
           justify-content: center;
-          padding: 24px 0;
+          padding: 24px 0 120px;
           box-sizing: border-box;
         }
 
@@ -130,6 +149,7 @@ function Progress() {
           border-radius: 24px;
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
           height: fit-content;
+          padding-bottom: 120px !important;
         }
 
         .knl-sticky-shell {
@@ -149,18 +169,6 @@ function Progress() {
         .knl-progress-heading { min-height: 42px; padding: 8px 0 2px; background: transparent; transition: padding .28s ease, transform .28s ease; }
         .knl-sticky-shell.scrolled .knl-progress-heading { padding-top: 4px; transform: scale(.96); transform-origin: center top; }
 
-        .knl-nav-item {
-          min-width: 52px;
-          padding: 5px 7px;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: background .2s ease, color .2s ease, transform .2s ease;
-        }
-
-        .knl-nav-item:hover { background: #ECF8F4; }
-        .knl-nav-item:active { transform: scale(.95); }
-        .knl-nav-item-active { background: #E5F7F1; }
-
         .knl-summary-card, .knl-nutrients-card, .knl-meals-card { border: 1px solid #D9EEE7; border-radius: 20px; background: #FFFFFF; box-shadow: 0 10px 24px rgba(44, 106, 87, .08); animation: knl-rise .5s ease both; }
         .knl-summary-card { padding: 18px 12px 8px; animation-delay: .05s; background: linear-gradient(145deg, #FFFFFF 0%, #F2FBF8 100%); border-top: 3px solid #2AB594; }
         .knl-nutrients-card { margin-top: 14px; padding: 16px 14px 4px; animation-delay: .12s; background: #FBFFFD; border-top: 3px solid #2AB594; }
@@ -178,10 +186,10 @@ function Progress() {
         }
         .knl-meals-card .knl-meal-card:hover,
         .knl-meals-card .knl-meal-card:focus-within {
-          transform: translateY(-5px) scale(1.015);
+          transform: translateY(-4px) scale(1.01);
           border-color: #4EC19F;
           background: #ECFAF5;
-          box-shadow: 0 14px 28px rgba(31, 145, 113, .20);
+          box-shadow: 0 12px 24px rgba(31, 145, 113, .16);
         }
         .knl-meals-card .knl-meal-card:active { transform: scale(.985); background: #E7F8F1; }
         .knl-meals-card .knl-meal-arrow { display: flex; align-items: center; color: #159979; }
@@ -233,16 +241,6 @@ function Progress() {
           display: none;
         }
 
-        /* Bottom navigation */
-        .knl-bottom-nav {
-          display: flex;
-          justify-content: space-around;
-          align-items: center;
-          border-top: 1px solid #F1F1F1;
-          margin-top: 20px;
-          padding-top: 10px;
-        }
-
         /* Mobile */
         @media (max-width: 480px) {
           .knl-page-bg {
@@ -258,9 +256,7 @@ function Progress() {
             border-radius: 0;
             box-shadow: none;
             min-height: auto;
-
-            /* Space for fixed bottom navigation */
-            padding-bottom: 90px !important;
+            padding-bottom: 120px !important;
           }
 
           /* Whole page scrolls */
@@ -290,28 +286,6 @@ function Progress() {
             display: block;
             flex-shrink: 0;
           }
-
-          /* Fixed mobile navigation */
-          .knl-bottom-nav {
-            position: fixed;
-            left: 50%;
-            bottom: 0;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 380px;
-            box-sizing: border-box;
-
-            background: rgba(255, 255, 255, 0.97);
-            border-top: 1px solid #E5E7EB;
-
-            margin: 0;
-            padding: 10px 8px
-              calc(10px + env(safe-area-inset-bottom));
-
-            z-index: 100;
-
-            box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.06);
-          }
         }
       `}</style>
 
@@ -330,22 +304,48 @@ function Progress() {
           <div className={`knl-sticky-shell ${headerScrolled ? "scrolled" : ""}`}>
             <div
               className="knl-progress-heading"
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
             >
               <button
                 type="button"
                 onClick={() => navigate("/home")}
                 aria-label="Back to dashboard"
-                style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 4,
+                  cursor: "pointer",
+                  display: "flex",
+                }}
               >
                 <ChevronLeft size={22} color="#1F2937" />
               </button>
-              <h1 style={{ fontSize: 17, fontWeight: 750, color: "#111827", margin: 0 }}>
+              <h1
+                style={{
+                  fontSize: 17,
+                  fontWeight: 750,
+                  color: "#111827",
+                  margin: 0,
+                }}
+              >
                 Today's Nutrition
               </h1>
               <button
-                onClick={() => { setCalendarOpen((open) => !open); navigate("/progress/goals"); }}
-                style={{ background: "none", border: "none", padding: 4, cursor: "pointer" }}
+                onClick={() => {
+                  setCalendarOpen((open) => !open);
+                  navigate("/progress/goals");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 4,
+                  cursor: "pointer",
+                }}
+                aria-label="Goal Progress Details"
               >
                 <Calendar size={18} color="#6B7280" />
               </button>
@@ -361,12 +361,37 @@ function Progress() {
               margin: "4px 0 20px",
             }}
           >
-            {new Date().toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date().toLocaleDateString([], {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
           </p>
 
           {calendarOpen && (
-            <div style={{ position: "absolute", top: 44, right: 20, background: "#FFFFFF", border: "1px solid #F1F1F1", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", zIndex: 10 }}>
-              <div style={{ padding: "10px 18px", fontSize: 13, color: "#111827", whiteSpace: "nowrap" }}>This Week</div>
+            <div
+              style={{
+                position: "absolute",
+                top: 44,
+                right: 20,
+                background: "#FFFFFF",
+                border: "1px solid #F1F1F1",
+                borderRadius: 12,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+                overflow: "hidden",
+                zIndex: 10,
+              }}
+            >
+              <div
+                style={{
+                  padding: "10px 18px",
+                  fontSize: 13,
+                  color: "#111827",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                This Week
+              </div>
             </div>
           )}
 
@@ -414,9 +439,7 @@ function Progress() {
                   strokeWidth="10"
                   strokeLinecap="round"
                   strokeDasharray={circumference}
-                  strokeDashoffset={
-                    circumference * (1 - ringProgress)
-                  }
+                  strokeDashoffset={circumference * (1 - ringProgress)}
                   style={{
                     transition:
                       "stroke-dashoffset 0.7s cubic-bezier(0.65, 0, 0.35, 1)",
@@ -474,7 +497,8 @@ function Progress() {
           {/* Nutrients */}
           <div className="knl-nutrients-card">
             {nutrients.map((n, index) => {
-              const nPct = n.goal > 0 ? Math.min((n.value / n.goal) * 100, 100) : 0;
+              const nPct =
+                n.goal > 0 ? Math.min((n.value / n.goal) * 100, 100) : 0;
 
               return (
                 <div
@@ -501,12 +525,7 @@ function Progress() {
                         color: "#374151",
                       }}
                     >
-                      <Flame
-                        size={13}
-                        color={n.color}
-                        fill={n.color}
-                      />
-
+                      <Flame size={13} color={n.color} fill={n.color} />
                       {n.label}
                     </span>
 
@@ -518,8 +537,7 @@ function Progress() {
                         color: "#111827",
                       }}
                     >
-                      {n.value.toLocaleString()} /{" "}
-                      {n.goal.toLocaleString()}
+                      {n.value.toLocaleString()} / {n.goal.toLocaleString()}
                       {n.unit}
                     </span>
                   </div>
@@ -574,10 +592,12 @@ function Progress() {
 
               <span
                 className="knl-see-all"
+                onClick={() => navigate("/history")}
                 style={{
                   fontSize: 12,
                   color: "#0D9488",
-                  fontWeight: 500,
+                  fontWeight: 600,
+                  cursor: "pointer",
                 }}
               >
                 See All
@@ -586,12 +606,63 @@ function Progress() {
 
             {/* Meals - no internal scrollbar */}
             <div className="knl-meals-list">
-              {progressError && <p style={{ color: '#b45309', fontSize: 12, textAlign: 'center' }}>{progressError}</p>}
-              {!progressError && todaysMeals.length === 0 && <p style={{ color: '#718E86', fontSize: 12, textAlign: 'center', padding: '12px 0' }}>No meals saved today yet.</p>}
+              {progressError && (
+                <p
+                  style={{
+                    color: "#b45309",
+                    fontSize: 12,
+                    textAlign: "center",
+                  }}
+                >
+                  {progressError}
+                </p>
+              )}
+              {!progressError && todaysMeals.length === 0 && (
+                <p
+                  style={{
+                    color: "#718E86",
+                    fontSize: 12,
+                    textAlign: "center",
+                    padding: "12px 0",
+                  }}
+                >
+                  No meals saved today yet.
+                </p>
+              )}
               {todaysMeals.map((meal) => (
                 <div
                   key={meal.id}
                   className="knl-meal-card"
+                  role="button"
+                  tabIndex="0"
+                  onClick={() =>
+                    navigate(`/food/${meal.id || "today-meal"}`, {
+                      state: {
+                        item: {
+                          id: meal.id,
+                          name: meal.name,
+                          portion: `${meal.items || 1} items`,
+                          kcal: meal.kcal,
+                          image: meal.image || mealImage,
+                        },
+                      },
+                    })
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      navigate(`/food/${meal.id || "today-meal"}`, {
+                        state: {
+                          item: {
+                            id: meal.id,
+                            name: meal.name,
+                            portion: `${meal.items || 1} items`,
+                            kcal: meal.kcal,
+                            image: meal.image || mealImage,
+                          },
+                        },
+                      });
+                    }
+                  }}
                 >
                   <img
                     src={meal.image || mealImage}
@@ -600,11 +671,11 @@ function Progress() {
                   />
 
                   <div style={{ flex: 1 }}>
-                      <p
-                        className="knl-meal-name"
-                        style={{
+                    <p
+                      className="knl-meal-name"
+                      style={{
                         fontSize: 13,
-                        fontWeight: 500,
+                        fontWeight: 600,
                         color: "#111827",
                         margin: 0,
                       }}
@@ -636,10 +707,7 @@ function Progress() {
 
                   {/* Mobile arrow */}
                   <div className="knl-meal-arrow">
-                    <ChevronRight
-                      size={20}
-                      color="#111827"
-                    />
+                    <ChevronRight size={20} color="#111827" />
                   </div>
                 </div>
               ))}
@@ -648,102 +716,30 @@ function Progress() {
 
           {/* Bottom Navigation */}
           <nav className="dashboard-nav" aria-label="Main navigation">
-            <Link to="/home"><Home size={18} /><span>Home</span></Link>
-            <Link className="active" to="/progress"><LayoutGrid size={18} /><span>Progress</span></Link>
-            <Link className="scan-nav" to="/scan"><span><ScanLine size={24} /><b aria-hidden="true">✦</b></span><small>Scan</small></Link>
-            <Link to="/history"><History size={18} /><span>History</span></Link>
-            <Link to="/profile"><User size={19} /><span>Profile</span></Link>
+            <Link to="/home">
+              <Home size={18} />
+              <span>Home</span>
+            </Link>
+            <Link className="active" to="/progress">
+              <LayoutGrid size={18} />
+              <span>Progress</span>
+            </Link>
+            <Link className="scan-nav" to="/scan">
+              <span>
+                <ScanLine size={24} />
+                <b aria-hidden="true">✦</b>
+              </span>
+              <small>Scan</small>
+            </Link>
+            <Link to="/history">
+              <History size={18} />
+              <span>History</span>
+            </Link>
+            <Link to="/profile">
+              <User size={19} />
+              <span>Profile</span>
+            </Link>
           </nav>
-          <div className="knl-bottom-nav" style={{ display: "none" }}>
-            {[
-              {
-                key: "home",
-                label: "Home",
-                icon: Home,
-              },
-              {
-                key: "progress",
-                label: "Progress",
-                icon: LayoutGrid,
-                active: true,
-              },
-              {
-                key: "scan",
-                label: "Scan",
-                icon: ScanLine,
-                isCenter: true,
-              },
-              {
-                key: "history",
-                label: "History",
-                icon: History,
-              },
-              {
-                key: "profile",
-                label: "Profile",
-                icon: User,
-              },
-            ].map((tab) => {
-              const Icon = tab.icon;
-
-              if (tab.isCenter) {
-                return (
-                  <div
-                    key={tab.key}
-                    onClick={() => navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : tab.key === "scan" ? "/scan" : "/progress")}
-                    style={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: "50%",
-                      background:
-                        "linear-gradient(135deg, #14B8A6, #0D9488)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginTop: -28,
-                      boxShadow:
-                        "0 6px 16px rgba(13,148,136,0.35)",
-                    }}
-                  >
-                    <Icon size={22} color="#FFFFFF" />
-                  </div>
-                );
-              }
-
-              return (
-                  <div
-                    key={tab.key}
-                    className={`knl-nav-item ${tab.active ? "knl-nav-item-active" : ""}`}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={tab.label}
-                    onClick={() => navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : "/progress")}
-                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate(tab.key === "home" ? "/home" : tab.key === "history" ? "/history" : tab.key === "profile" ? "/profile" : "/progress"); }}
-                    style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 2,
-                  }}
-                >
-                  <Icon
-                    size={20}
-                    color={tab.active ? "#079879" : "#7B8B86"}
-                  />
-
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: tab.active ? 600 : 400,
-                      color: tab.active ? "#079879" : "#65756F",
-                    }}
-                  >
-                    {tab.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </div>
     </>

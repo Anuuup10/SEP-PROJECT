@@ -1,6 +1,7 @@
 import { analyzeFoodImage } from '../services/geminiService.js';
 import { randomUUID } from 'node:crypto';
 import { calculateStreak, listMeals, saveMeal, saveScan } from '../services/mongoService.js';
+import UserProfile from '../models/UserProfile.js';
 
 export const scanFood = async (req, res, next) => {
   try {
@@ -8,7 +9,8 @@ export const scanFood = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please upload an image' });
     }
 
-    const result = await analyzeFoodImage(req.file.buffer, req.file.mimetype);
+    const profile = await UserProfile.findOne({ userId: req.user.id }).select('conditions').lean();
+    const result = await analyzeFoodImage(req.file.buffer, req.file.mimetype, Array.isArray(profile?.conditions) ? profile.conditions : []);
 
     if (!result.isFood) {
       return res.status(422).json({ success: false, message: 'No recognizable food was detected in the image', data: result });
@@ -22,6 +24,7 @@ export const scanFood = async (req, res, next) => {
     result.image = imageDataUrl;
     result.imageUrl = imageDataUrl;
     await saveScan({ userId: req.user.id, analysis: result });
+    await saveMeal({ userId: req.user.id, scanId: result.scanId });
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);

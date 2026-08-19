@@ -200,7 +200,7 @@ export default function FoodAnalysisResult({
               <button
                 key={item.id}
                 onClick={() => onSelectItem?.({ ...item, image: item.image || image })}
-                className="detected-item-row"
+                className={`detected-item-row health-item-${item.healthStatus || "safe"}`}
               >
                 <div className="detected-item-thumb">
                   <img src={item.image || image} alt={item.name} />
@@ -210,6 +210,7 @@ export default function FoodAnalysisResult({
                   <div className="detected-item-meta">
                     {item.portion} &middot; {item.kcal} kcal
                   </div>
+                  {item.healthStatus && item.healthStatus !== "safe" && <div className="detected-item-health-warning"><span>{item.healthStatus === "high-risk" ? "●" : "●"}</span>{item.healthReason || "May need extra attention for your health condition."}</div>}
                 </div>
                 <span className="detected-item-remove" role="button" tabIndex="0" aria-label={`Remove ${item.name}`} onClick={(event) => handleRemoveItem(event, item.id, item.name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") handleRemoveItem(event, item.id, item.name); }}>×</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="detected-item-chevron">

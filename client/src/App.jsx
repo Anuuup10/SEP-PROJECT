@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Progress from './pages/Progress';
 import History from './pages/History';
 import Setting from './pages/Setting';
+import ProfileSetup from './pages/ProfileSetup';
 
 function ResultRoute() {
   const location = useLocation();
@@ -59,6 +60,7 @@ function AppRoutes() {
         <Route path="/history" element={<History />} />
         <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
         <Route path="/profile" element={<Setting />} />
+        <Route path="/profile/setup" element={<ProfileSetup />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
