@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  Bell,
   Check,
   ChevronRight,
   CircleUserRound,
   Globe2,
+  Languages,
   HelpCircle,
   History,
   Home,
@@ -24,6 +24,7 @@ import { useAuth } from "../hooks/useAuth";
 import khanaLensLogo from "../assets/images/KhanaLens.jpg";
 import { getHistoryApi, getProfileApi, saveProfileApi } from "../services/api";
 import { FOOD_AVATARS, FoodAvatar } from "../components/FoodAvatar";
+import { useLanguage } from "../context/LanguageContext";
 
 const defaults = {
   name: "",
@@ -79,10 +80,10 @@ const groups = [
         description: "Metric (kg, cm)",
       },
       {
-        id: "notifications",
-        icon: Bell,
-        label: "Notifications",
-        description: "Daily reminders",
+        id: "language",
+        icon: Languages,
+        label: "Language",
+        description: "Choose your app language",
       },
       {
         id: "privacy",
@@ -131,11 +132,11 @@ function AvatarChooser({ avatar, onChange }) {
 export default function ProfileSettings() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
   const [profile, setProfile] = useState(defaults);
   const [draft, setDraft] = useState(defaults);
   const [editing, setEditing] = useState(false);
   const [panel, setPanel] = useState(null);
-  const [notifications, setNotifications] = useState(true);
   const [saved, setSaved] = useState(false);
   const [streak, setStreak] = useState(0);
 
@@ -237,10 +238,7 @@ export default function ProfileSettings() {
   };
 
   const open = (id) => {
-    if (id === "notifications") {
-      setNotifications((value) => !value);
-      return;
-    }
+    if (id === "language") return;
     setDraft(profile);
     setPanel(id);
   };
@@ -567,6 +565,32 @@ export default function ProfileSettings() {
           color: #258b6d;
           font-size: 10px;
           font-weight: 850;
+        }
+        .profile-language-picker {
+          display: inline-flex;
+          align-items: center;
+          padding: 3px;
+          gap: 2px;
+          border: 1px solid #bfe8d8;
+          background: #effaf5;
+          border-radius: 999px;
+        }
+        .profile-language-picker button {
+          border: 0;
+          background: transparent;
+          color: #4b7769;
+          padding: 6px 8px;
+          font: inherit;
+          font-size: 10px;
+          font-weight: 800;
+          line-height: 1;
+          border-radius: 999px;
+          cursor: pointer;
+        }
+        .profile-language-picker button.active {
+          color: #fff;
+          background: #159b78;
+          box-shadow: 0 2px 5px rgba(14, 126, 95, .22);
         }
         .profile-chevron {
           color: #76aa97;
@@ -1022,7 +1046,7 @@ export default function ProfileSettings() {
               <div className="profile-menu">
                 {group.items.map((entry) => {
                   const Icon = entry.icon;
-                  const isNotifications = entry.id === "notifications";
+                  const isLanguage = entry.id === "language";
                   const description =
                     entry.id === "activity"
                       ? profile.activity
@@ -1030,11 +1054,15 @@ export default function ProfileSettings() {
                       ? profile.units
                       : entry.description;
                   return (
-                    <button
+                    <div
                       className="profile-menu-row"
-                      type="button"
                       key={entry.id}
+                      role={isLanguage ? "group" : "button"}
+                      tabIndex={isLanguage ? -1 : 0}
                       onClick={() => open(entry.id)}
+                      onKeyDown={(event) => {
+                        if (!isLanguage && (event.key === "Enter" || event.key === " ")) open(entry.id);
+                      }}
                     >
                       <span className="profile-menu-icon">
                         <Icon size={16} />
@@ -1043,18 +1071,10 @@ export default function ProfileSettings() {
                         <strong>{entry.label}</strong>
                         <span>{description}</span>
                       </span>
-                      {isNotifications ? (
-                        <span
-                          className={`profile-toggle ${
-                            notifications ? "on" : ""
-                          }`}
-                          aria-label={
-                            notifications
-                              ? "Notifications on"
-                              : "Notifications off"
-                          }
-                        >
-                          <span />
+                      {isLanguage ? (
+                        <span className="profile-language-picker" aria-label="Select language" onClick={(event) => event.stopPropagation()}>
+                          <button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")} aria-pressed={language === "en"}>English</button>
+                          <button type="button" className={language === "ne" ? "active" : ""} onClick={() => setLanguage("ne")} aria-pressed={language === "ne"}>नेपाली</button>
                         </span>
                       ) : (
                         <>
@@ -1073,7 +1093,7 @@ export default function ProfileSettings() {
                           />
                         </>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>

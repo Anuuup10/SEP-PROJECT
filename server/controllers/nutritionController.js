@@ -10,7 +10,8 @@ export const scanFood = async (req, res, next) => {
     }
 
     const profile = await UserProfile.findOne({ userId: req.user.id }).select('conditions').lean();
-    const result = await analyzeFoodImage(req.file.buffer, req.file.mimetype, Array.isArray(profile?.conditions) ? profile.conditions : []);
+    const language = req.body?.language === 'ne' ? 'ne' : 'en';
+    const result = await analyzeFoodImage(req.file.buffer, req.file.mimetype, Array.isArray(profile?.conditions) ? profile.conditions : [], language);
 
     if (!result.isFood) {
       return res.status(422).json({ success: false, message: 'No recognizable food was detected in the image', data: result });
