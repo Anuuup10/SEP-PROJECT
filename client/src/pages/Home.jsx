@@ -84,15 +84,31 @@ export const Home = () => {
   const { getHistory, loading } = useNutrition();
   const [history, setHistory] = useState({ summary: { totals: {} }, data: [] });
   const [profile, setProfile] = useState(null);
-  const [nutritionProgress, setNutritionProgress] = useState(null);
-  const [selectedProgressDate, setSelectedProgressDate] = useState(null);
+  const progressCacheKey = useMemo(() => `nutrilens_progress:${user?.id || 'guest'}`, [user?.id]);
+  const [nutritionProgress, setNutritionProgress] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`nutrilens_progress:${user?.id || 'guest'}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [selectedProgressDate, setSelectedProgressDate] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`nutrilens_progress:${user?.id || 'guest'}`);
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed?.days?.[parsed.days.length - 1]?.date || null;
+    } catch {
+      return null;
+    }
+  });
   const [profileLoading, setProfileLoading] = useState(true);
   const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals(user?.id));
   const [goalOverride, setGoalOverride] = useState({});
   const [goalDraft, setGoalDraft] = useState({ calorieGoal: defaultSummary.calorieGoal, proteinGoal: defaultSummary.proteinGoal, carbsGoal: defaultSummary.carbsGoal, fatGoal: defaultSummary.fatGoal });
   const [goalEditorOpen, setGoalEditorOpen] = useState(false);
 
-  const fetchDashboardData = () => {
+  const fetchDashboardData = (retryCount = 0) => {
     if (!user?.id) return;
     let cachedProfile = null;
     try { cachedProfile = JSON.parse(localStorage.getItem(`nutrilens_profile:${user.id}`) || 'null'); } catch { cachedProfile = null; }
@@ -100,19 +116,36 @@ export const Home = () => {
     setProfile(cachedProfile);
     setProfileLoading(true);
     setTrackedMeals(getTrackedMeals(user.id));
-    getHistory().then(setHistory).catch(() => setHistory({ summary: { totals: {} }, data: [] }));
-    getProgressApi('week').then((response) => {
-      const nextProgress = response.data.data;
-      setNutritionProgress(nextProgress);
-      setSelectedProgressDate(nextProgress.days?.[nextProgress.days.length - 1]?.date || null);
-    }).catch(() => setNutritionProgress(null));
-    getProfileApi().then((response) => {
-      const nextProfile = response.data.data;
-      const resolvedProfile = nextProfile || cachedProfile;
-      setProfile(resolvedProfile);
-      setGoalOverride({ calorieGoal: Number(resolvedProfile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(resolvedProfile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(resolvedProfile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(resolvedProfile?.fatGoal || defaultSummary.fatGoal) });
-      setGoalDraft({ calorieGoal: Number(resolvedProfile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(resolvedProfile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(resolvedProfile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(resolvedProfile?.fatGoal || defaultSummary.fatGoal) });
-    }).catch(() => setProfile(cachedProfile)).finally(() => setProfileLoading(false));
+
+    getHistory()
+      .then(setHistory)
+      .catch(() => {
+        if (retryCount < 2) setTimeout(() => fetchDashboardData(retryCount + 1), 1500);
+      });
+
+    getProgressApi('week')
+      .then((response) => {
+        const nextProgress = response.data.data;
+        if (nextProgress) {
+          setNutritionProgress(nextProgress);
+          localStorage.setItem(progressCacheKey, JSON.stringify(nextProgress));
+          setSelectedProgressDate((prev) => prev || nextProgress.days?.[nextProgress.days.length - 1]?.date || null);
+        }
+      })
+      .catch(() => {
+        if (retryCount < 2) setTimeout(() => fetchDashboardData(retryCount + 1), 1500);
+      });
+
+    getProfileApi()
+      .then((response) => {
+        const nextProfile = response.data.data;
+        const resolvedProfile = nextProfile || cachedProfile;
+        setProfile(resolvedProfile);
+        setGoalOverride({ calorieGoal: Number(resolvedProfile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(resolvedProfile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(resolvedProfile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(resolvedProfile?.fatGoal || defaultSummary.fatGoal) });
+        setGoalDraft({ calorieGoal: Number(resolvedProfile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(resolvedProfile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(resolvedProfile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(resolvedProfile?.fatGoal || defaultSummary.fatGoal) });
+      })
+      .catch(() => setProfile(cachedProfile))
+      .finally(() => setProfileLoading(false));
   };
 
   useEffect(() => {
@@ -123,7 +156,14 @@ export const Home = () => {
     const syncTrackedMeals = () => {
       setTrackedMeals(getTrackedMeals(user?.id));
       getHistory().then(setHistory).catch(() => {});
-      getProgressApi('week').then((response) => setNutritionProgress(response.data.data)).catch(() => {});
+      getProgressApi('week')
+        .then((response) => {
+          if (response.data.data) {
+            setNutritionProgress(response.data.data);
+            localStorage.setItem(progressCacheKey, JSON.stringify(response.data.data));
+          }
+        })
+        .catch(() => {});
     };
     window.addEventListener('nutrilens-tracker-updated', syncTrackedMeals);
     window.addEventListener('storage', syncTrackedMeals);
@@ -131,22 +171,46 @@ export const Home = () => {
       window.removeEventListener('nutrilens-tracker-updated', syncTrackedMeals);
       window.removeEventListener('storage', syncTrackedMeals);
     };
-  }, [user?.id, getHistory]);
+  }, [user?.id, getHistory, progressCacheKey]);
 
   const progressDays = nutritionProgress?.days || [];
   const selectedDay = progressDays.find((day) => day.date === selectedProgressDate) || progressDays[progressDays.length - 1];
 
   const summary = useMemo(() => {
-    const selectedTotals = selectedDay || nutritionProgress?.today || {};
-    const base = { ...defaultSummary, calories: Number(selectedTotals.calories || 0), protein: Number(selectedTotals.protein || 0), carbs: Number(selectedTotals.carbs || 0), fat: Number(selectedTotals.fat || 0), calorieGoal: Number(profile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(profile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(profile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(profile?.fatGoal || defaultSummary.fatGoal), ...goalOverride };
-    return {
-      ...base,
-      calories: Number(base.calories || 0),
-      protein: Number(base.protein || 0),
-      carbs: Number(base.carbs || 0),
-      fat: Number(base.fat || 0),
+    const mealTotals = (selectedDay?.meals || []).reduce((totals, meal) => ({
+      calories: totals.calories + Number(meal.calories ?? meal.totals?.calories ?? meal.totalKcal ?? 0),
+      protein: totals.protein + Number(meal.protein ?? meal.totals?.protein ?? 0),
+      carbs: totals.carbs + Number(meal.carbs ?? meal.totals?.carbohydrates ?? meal.totals?.carbs ?? 0),
+      fat: totals.fat + Number(meal.fat ?? meal.fats ?? meal.totals?.fat ?? 0),
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+    const rawCals = Number(selectedDay?.calories);
+    const resolvedCals = Number.isFinite(rawCals) && rawCals > 0 ? rawCals : mealTotals.calories;
+
+    const rawPro = Number(selectedDay?.protein);
+    const resolvedPro = Number.isFinite(rawPro) && rawPro > 0 ? rawPro : mealTotals.protein;
+
+    const rawCarbs = Number(selectedDay?.carbs);
+    const resolvedCarbs = Number.isFinite(rawCarbs) && rawCarbs > 0 ? rawCarbs : mealTotals.carbs;
+
+    const rawFat = Number(selectedDay?.fat);
+    const resolvedFat = Number.isFinite(rawFat) && rawFat > 0 ? rawFat : mealTotals.fat;
+
+    const base = {
+      ...defaultSummary,
+      calories: Math.round(resolvedCals || 0),
+      protein: Math.round(resolvedPro || 0),
+      carbs: Math.round(resolvedCarbs || 0),
+      fat: Math.round(resolvedFat || 0),
+      calorieGoal: Number(profile?.calorieGoal || defaultSummary.calorieGoal),
+      proteinGoal: Number(profile?.proteinGoal || defaultSummary.proteinGoal),
+      carbsGoal: Number(profile?.carbsGoal || defaultSummary.carbsGoal),
+      fatGoal: Number(profile?.fatGoal || defaultSummary.fatGoal),
+      ...goalOverride
     };
+    return base;
   }, [nutritionProgress, selectedDay, goalOverride, profile?.calorieGoal, profile?.proteinGoal, profile?.carbsGoal, profile?.fatGoal]);
+
 
   const trackedMealRows = trackedMeals.map((meal) => ({
     _id: meal.id,
