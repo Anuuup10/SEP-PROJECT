@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Bell,
   Camera,
   ChevronRight,
   CircleUserRound,
@@ -10,6 +9,7 @@ import {
   LayoutDashboard,
   ScanLine,
   UserRound,
+  UtensilsCrossed,
 } from 'lucide-react';
 import mealImage from '../assets/images/HealthyFood-2.jpg';
 import khanaLensLogo from '../assets/images/KhanaLens.jpg';
@@ -157,18 +157,6 @@ export const Home = () => {
     image: meal.image || meal.imageUrl,
     items: meal.items,
   }));
-  const savedMealRows = (history?.data || []).map((meal) => ({
-    ...meal,
-    _id: meal._id || meal.id,
-    foodName: meal.foodName || meal.mealName || 'Saved meal',
-    calories: Number(meal.calories ?? meal.totals?.calories ?? 0),
-    itemCount: meal.itemCount || meal.items?.length || 1,
-    protein: Number(meal.protein ?? meal.totals?.protein ?? 0),
-    carbs: Number(meal.carbs ?? meal.totals?.carbohydrates ?? 0),
-    fats: Number(meal.fats ?? meal.totals?.fat ?? 0),
-    image: meal.image || meal.imageUrl,
-  }));
-
   const isSelectedPastDay = Boolean(selectedProgressDate && selectedDay && selectedDay.date !== progressDays[progressDays.length - 1]?.date);
   const selectedDayName = selectedDay ? new Date(`${selectedDay.date}T12:00:00Z`).toLocaleDateString([], { weekday: 'long' }) : 'Today';
   const selectedDayMealRows = (selectedDay?.meals || []).map((meal) => ({
@@ -185,18 +173,24 @@ export const Home = () => {
     image: meal.image,
   }));
 
+  const selectedDayTrackedMealRows = trackedMealRows.filter((meal) => {
+    if (!selectedDay?.date || !meal.createdAt || meal.createdAt === 'Just now') return false;
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kathmandu',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date(meal.createdAt));
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}` === selectedDay.date;
+  });
+
   const meals = useMemo(() => {
-    if (isSelectedPastDay) {
-      return selectedDayMealRows.slice(0, 5);
-    }
-    if (savedMealRows.length > 0) {
-      return savedMealRows.slice(0, 5);
-    }
-    if (selectedDayMealRows.length > 0) {
-      return selectedDayMealRows.slice(0, 5);
-    }
-    return trackedMealRows.slice(0, 5);
-  }, [isSelectedPastDay, selectedDayMealRows, savedMealRows, trackedMealRows]);
+    if (!selectedDay) return [];
+    return [...selectedDayMealRows, ...selectedDayTrackedMealRows]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 5);
+  }, [selectedDay, selectedDayMealRows, selectedDayTrackedMealRows]);
 
   const displayName = user?.name?.split(' ')[0] || 'there';
   const saveGoals = async () => {
@@ -236,7 +230,9 @@ export const Home = () => {
             <span className="dashboard-brand-copy"><strong>Khana<span>Lens</span></strong><small>Scan. Analyze. Eat Smarter.</small></span>
           </Link>
           <div className="dashboard-header-actions">
-            <button className="icon-button" aria-label="Notifications"><Bell size={20} /></button>
+            <Link className="icon-button" to="/meal-plan" aria-label="Open 7-Day Meal Planner" title="7-Day Meal Plan">
+              <UtensilsCrossed size={19} />
+            </Link>
             <Link to="/profile" aria-label="Open profile"><Avatar user={user} profile={profile} /></Link>
           </div>
         </div>

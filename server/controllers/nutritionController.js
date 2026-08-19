@@ -2,6 +2,8 @@ import { analyzeFoodImage } from '../services/geminiService.js';
 import { randomUUID } from 'node:crypto';
 import { calculateStreak, listMeals, saveMeal, saveScan } from '../services/mongoService.js';
 import UserProfile from '../models/UserProfile.js';
+import { findFoodImageUrl } from '../services/foodImageService.js';
+import { saveMealImageUrl } from '../services/firebaseService.js';
 
 export const scanFood = async (req, res, next) => {
   try {
@@ -22,10 +24,14 @@ export const scanFood = async (req, res, next) => {
     if (Buffer.byteLength(imageDataUrl, 'utf8') > 900 * 1024) {
       return res.status(413).json({ success: false, message: 'The image thumbnail is too large. Please use a smaller image.' });
     }
-    result.image = imageDataUrl;
-    result.imageUrl = imageDataUrl;
+    const foodImageUrl = await findFoodImageUrl({ mealName: result.mealName, items: result.items });
+    result.image = foodImageUrl || imageDataUrl;
+    result.imageUrl = foodImageUrl || imageDataUrl;
     await saveScan({ userId: req.user.id, analysis: result });
     await saveMeal({ userId: req.user.id, scanId: result.scanId });
+    if (foodImageUrl) {
+      await saveMealImageUrl({ userId: req.user.id, scanId: result.scanId, mealName: result.mealName, imageUrl: foodImageUrl }).catch(() => {});
+    }
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -60,6 +66,9 @@ export const saveNutritionMeal = async (req, res, next) => {
     if (!req.body?.scanId) return res.status(400).json({ success: false, message: 'scanId is required' });
     const meal = await saveMeal({ userId: req.user.id, scanId: req.body.scanId });
     if (!meal) return res.status(404).json({ success: false, message: 'Scan not found for this user' });
+    if (meal.image && /^https?:\/\//i.test(meal.image)) {
+      await saveMealImageUrl({ userId: req.user.id, scanId: req.body.scanId, mealName: meal.mealName, imageUrl: meal.image }).catch(() => {});
+    }
     res.status(201).json({ success: true, data: meal });
   } catch (error) { next(error); }
 };

@@ -73,6 +73,14 @@ export const saveMeal = async ({ userId, scanId }) => {
   return { id: ref.id, ...scan, createdAt: new Date().toISOString() };
 };
 
+// Keep the image URL in Firestore as a normal string field. The image itself
+// remains hosted by the image provider, so no base64 data is written to Firestore.
+export const saveMealImageUrl = async ({ userId, scanId, mealName, imageUrl }) => {
+  if (!imageUrl) return;
+  const ref = firebaseDb().collection('meals').doc(`${userId}_${scanId}`);
+  await ref.set({ userId, scanId, mealName, image: imageUrl, imageUrl, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+};
+
 export const listMeals = async (userId) => {
   const snapshot = await firebaseDb().collection('meals').where('userId', '==', userId).get();
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null })).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
