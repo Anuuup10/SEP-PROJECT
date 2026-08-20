@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
 import { scanFoodApi, getHistoryApi } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 export const useNutrition = () => {
+  const { language } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -11,6 +13,7 @@ export const useNutrition = () => {
     try {
       const formData = new FormData();
       formData.append('image', imageFile);
+      formData.append('language', language);
       const res = await scanFoodApi(formData);
       setLoading(false);
       return res.data;
@@ -19,7 +22,7 @@ export const useNutrition = () => {
       setLoading(false);
       throw err;
     }
-  }, []);
+  }, [language]);
 
   const getHistory = useCallback(async () => {
     setLoading(true);

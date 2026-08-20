@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { MainLayout } from './layouts/MainLayout';
 import { Home } from './pages/Home';
 import { Scan } from './pages/Scan';
@@ -15,7 +16,6 @@ import History from './pages/History';
 import Setting from './pages/Setting';
 import ProfileSetup from './pages/ProfileSetup';
 import MealPlanner from './pages/MealPlanner';
-import { LanguageProvider } from './i18n';
 
 function ResultRoute() {
   const location = useLocation();
@@ -72,13 +72,13 @@ function AppRoutes() {
 
 export function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <LanguageProvider>
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
-      </AuthProvider>
-    </LanguageProvider>
+      </LanguageProvider>
+    </AuthProvider>
   );
 }
 

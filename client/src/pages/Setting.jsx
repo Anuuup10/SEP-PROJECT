@@ -6,11 +6,11 @@ import {
   ChevronRight,
   CircleUserRound,
   Globe2,
+  Languages,
   HelpCircle,
   History,
   Home,
   LayoutDashboard,
-  Languages,
   LogOut,
   Pencil,
   ScanLine,
@@ -24,7 +24,7 @@ import { useAuth } from "../hooks/useAuth";
 import khanaLensLogo from "../assets/images/KhanaLens.jpg";
 import { getHistoryApi, getProfileApi, saveProfileApi } from "../services/api";
 import { FOOD_AVATARS, FoodAvatar } from "../components/FoodAvatar";
-import { useLanguage } from "../i18n";
+import { useLanguage } from "../context/LanguageContext";
 
 const defaults = {
   name: "",
@@ -83,7 +83,7 @@ const groups = [
         id: "language",
         icon: Languages,
         label: "Language",
-        description: "Choose your preferred language",
+        description: "Choose your app language",
       },
       {
         id: "privacy",
@@ -238,6 +238,7 @@ export default function ProfileSettings() {
   };
 
   const open = (id) => {
+    if (id === "language") return;
     setDraft(profile);
     setPanel(id);
   };
@@ -565,30 +566,31 @@ export default function ProfileSettings() {
           font-size: 10px;
           font-weight: 850;
         }
-        .profile-language-switcher {
-          display: flex;
-          flex: 0 0 auto;
-          gap: 3px;
+        .profile-language-picker {
+          display: inline-flex;
+          align-items: center;
           padding: 3px;
-          border: 1px solid #c5ead8;
-          border-radius: 11px;
-          background: #edf9f3;
+          gap: 2px;
+          border: 1px solid #bfe8d8;
+          background: #effaf5;
+          border-radius: 999px;
         }
-        .profile-language-option {
-          min-width: 43px;
-          padding: 6px 7px;
+        .profile-language-picker button {
           border: 0;
-          border-radius: 8px;
-          color: #5f8a7b;
           background: transparent;
+          color: #4b7769;
+          padding: 6px 8px;
+          font: inherit;
           font-size: 10px;
-          font-weight: 850;
+          font-weight: 800;
+          line-height: 1;
+          border-radius: 999px;
           cursor: pointer;
         }
-        .profile-language-option.active {
+        .profile-language-picker button.active {
           color: #fff;
-          background: #1a9a73;
-          box-shadow: 0 3px 7px rgba(26, 154, 115, 0.2);
+          background: #159b78;
+          box-shadow: 0 2px 5px rgba(14, 126, 95, .22);
         }
         .profile-chevron {
           color: #76aa97;
@@ -1051,13 +1053,16 @@ export default function ProfileSettings() {
                       : entry.id === "units"
                       ? profile.units
                       : entry.description;
-                  const Row = isLanguage ? "div" : "button";
                   return (
-                    <Row
+                    <div
                       className="profile-menu-row"
-                      {...(!isLanguage ? { type: "button" } : {})}
                       key={entry.id}
-                      onClick={!isLanguage ? () => open(entry.id) : undefined}
+                      role={isLanguage ? "group" : "button"}
+                      tabIndex={isLanguage ? -1 : 0}
+                      onClick={() => open(entry.id)}
+                      onKeyDown={(event) => {
+                        if (!isLanguage && (event.key === "Enter" || event.key === " ")) open(entry.id);
+                      }}
                     >
                       <span className="profile-menu-icon">
                         <Icon size={16} />
@@ -1067,36 +1072,9 @@ export default function ProfileSettings() {
                         <span>{description}</span>
                       </span>
                       {isLanguage ? (
-                        <span
-                          className="profile-language-switcher"
-                          aria-label="Select language"
-                        >
-                          <button
-                            type="button"
-                            className={`profile-language-option ${
-                              language === "en" ? "active" : ""
-                            }`}
-                            aria-pressed={language === "en"}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setLanguage("en");
-                            }}
-                          >
-                            English
-                          </button>
-                          <button
-                            type="button"
-                            className={`profile-language-option ${
-                              language === "ne" ? "active" : ""
-                            }`}
-                            aria-pressed={language === "ne"}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setLanguage("ne");
-                            }}
-                          >
-                            नेपाली
-                          </button>
+                        <span className="profile-language-picker" aria-label="Select language" onClick={(event) => event.stopPropagation()}>
+                          <button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")} aria-pressed={language === "en"}>English</button>
+                          <button type="button" className={language === "ne" ? "active" : ""} onClick={() => setLanguage("ne")} aria-pressed={language === "ne"}>नेपाली</button>
                         </span>
                       ) : (
                         <>
@@ -1115,7 +1093,7 @@ export default function ProfileSettings() {
                           />
                         </>
                       )}
-                    </Row>
+                    </div>
                   );
                 })}
               </div>

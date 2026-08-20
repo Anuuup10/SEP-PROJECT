@@ -25,7 +25,7 @@ const nutritionSchema = {
   required: ['isFood', 'mealName', 'items', 'overallConfidence', 'insight', 'assumptions', 'disclaimer']
 };
 
-const buildPrompt = (conditions = []) => {
+const buildPrompt = (conditions = [], language = 'en') => {
   const conditionText = conditions.length ? conditions.join(', ') : 'None';
   return `You are KhanaLens, an AI food and nutrition analysis assistant.
 
@@ -49,6 +49,8 @@ For relevant items, return "none", "caution", or "review" based on the provided 
 Give a short 1–2 sentence nutrition insight.
 
 If no food is detected, return isFood: false and an empty items array.
+
+${language === 'ne' ? 'Return every user-facing text field (mealName, item names, categories, portions, cooking methods, insights, assumptions, allergens, healthReason, and disclaimer) in Nepali written in Devanagari. Keep all nutrition values as numbers.' : 'Return all user-facing text fields in English.'}
 
 Return ONLY valid JSON matching the provided schema.`;
 };
@@ -111,7 +113,7 @@ const normalizeResult = (result) => {
   };
 };
 
-export const analyzeFoodImage = async (imageBuffer, mimeType, conditions = []) => {
+export const analyzeFoodImage = async (imageBuffer, mimeType, conditions = [], language = 'en') => {
   if (!config.geminiApiKey) {
     const error = new Error('Gemini API key is not configured');
     error.statusCode = 503;
@@ -123,7 +125,7 @@ export const analyzeFoodImage = async (imageBuffer, mimeType, conditions = []) =
       responseMimeType: 'application/json', responseSchema: nutritionSchema, temperature: 0.1
     } });
     const result = await model.generateContent([
-      { text: buildPrompt(conditions) },
+      { text: buildPrompt(conditions, language) },
       { inlineData: { data: imageBuffer.toString('base64'), mimeType } }
     ]);
     return normalizeResult(JSON.parse(result.response.text()));
