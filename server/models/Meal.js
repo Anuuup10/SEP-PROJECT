@@ -11,6 +11,7 @@ const mealSchema = new mongoose.Schema({
   insight: { type: String },
   assumptions: { type: [String], default: [] },
   disclaimer: { type: String },
+  tracked: { type: Boolean, default: false, index: true },
   createdAt: { type: Date, default: Date.now },
   savedAt: { type: Date, default: Date.now }
 }, { minimize: false });

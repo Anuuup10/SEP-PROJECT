@@ -17,14 +17,18 @@ export const saveMeal = async ({ userId, scanId }) => {
   const analysis = scan.analysis;
   const meal = await Meal.findOneAndUpdate(
     { userId, scanId },
-    { $setOnInsert: { userId, scanId, ...analysis, createdAt: new Date(), savedAt: new Date() } },
+    {
+      $set: { tracked: true, savedAt: new Date() },
+      $setOnInsert: { userId, scanId, ...analysis, createdAt: new Date() }
+    },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
   return { id: meal._id.toString(), ...analysis, createdAt: (meal.createdAt || new Date()).toISOString() };
 };
 
 export const listMeals = async (userId) => {
-  const meals = await Meal.find({ userId }).sort({ createdAt: -1 }).lean();
+  // Keep legacy meals (created before the tracked flag existed) visible.
+  const meals = await Meal.find({ userId, tracked: { $ne: false } }).sort({ createdAt: -1 }).lean();
   return meals.map((meal) => ({ ...meal, id: meal._id.toString(), _id: undefined }));
 };
 
@@ -50,7 +54,7 @@ export const getProgress = async ({ userId, period = 'week' }) => {
   end.setUTCDate(end.getUTCDate() + 2);
 
   const [meals, profile] = await Promise.all([
-    Meal.find({ userId, createdAt: { $gte: start, $lte: end } }).sort({ createdAt: 1 }).lean(),
+    Meal.find({ userId, tracked: { $ne: false }, createdAt: { $gte: start, $lte: end } }).sort({ createdAt: 1 }).lean(),
     UserProfile.findOne({ userId }).lean()
   ]);
 
@@ -88,7 +92,7 @@ export const getProgress = async ({ userId, period = 'week' }) => {
 };
 
 export const calculateStreak = async (userId) => {
-  const meals = await Meal.find({ userId }, { createdAt: 1 }).sort({ createdAt: -1 }).lean();
+  const meals = await Meal.find({ userId, tracked: { $ne: false } }, { createdAt: 1 }).sort({ createdAt: -1 }).lean();
   const dates = new Set(meals.map((meal) => dateKey(meal.createdAt)));
   let streak = 0;
   let cursor = dateKey(new Date());

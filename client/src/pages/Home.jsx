@@ -68,10 +68,12 @@ function SummaryRing({ calories, goal }) {
 
 function MacroRow({ type, label, value, goal, color }) {
   const percentage = goal > 0 ? Math.min((value / goal) * 100, 100) : 0;
+  const displayValue = Math.round(Number(value) || 0);
+  const displayGoal = Math.round(Number(goal) || 0);
   return (
     <div className={`macro-row ${type}`}>
       <div className="macro-label"><span className={`macro-icon ${type}`}>{type === 'protein' ? '♨️' : type === 'carbs' ? '🔥' : '🟠'}</span><span>{label}</span></div>
-      <strong>{value} <small>/{goal}g</small></strong>
+      <strong>{displayValue} <small>/{displayGoal}g</small></strong>
       <div className="macro-track"><span style={{ width: `${percentage}%`, background: color }} /></div>
     </div>
   );
@@ -187,7 +189,8 @@ export const Home = () => {
 
   const meals = useMemo(() => {
     if (!selectedDay) return [];
-    return [...selectedDayMealRows, ...selectedDayTrackedMealRows]
+    const sourceMeals = selectedDayMealRows.length > 0 ? selectedDayMealRows : selectedDayTrackedMealRows;
+    return sourceMeals
       .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 5);
   }, [selectedDay, selectedDayMealRows, selectedDayTrackedMealRows]);

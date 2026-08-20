@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  Bell,
   Check,
   ChevronRight,
   CircleUserRound,
@@ -11,6 +10,7 @@ import {
   History,
   Home,
   LayoutDashboard,
+  Languages,
   LogOut,
   Pencil,
   ScanLine,
@@ -24,6 +24,7 @@ import { useAuth } from "../hooks/useAuth";
 import khanaLensLogo from "../assets/images/KhanaLens.jpg";
 import { getHistoryApi, getProfileApi, saveProfileApi } from "../services/api";
 import { FOOD_AVATARS, FoodAvatar } from "../components/FoodAvatar";
+import { useLanguage } from "../i18n";
 
 const defaults = {
   name: "",
@@ -79,10 +80,10 @@ const groups = [
         description: "Metric (kg, cm)",
       },
       {
-        id: "notifications",
-        icon: Bell,
-        label: "Notifications",
-        description: "Daily reminders",
+        id: "language",
+        icon: Languages,
+        label: "Language",
+        description: "Choose your preferred language",
       },
       {
         id: "privacy",
@@ -131,11 +132,11 @@ function AvatarChooser({ avatar, onChange }) {
 export default function ProfileSettings() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
   const [profile, setProfile] = useState(defaults);
   const [draft, setDraft] = useState(defaults);
   const [editing, setEditing] = useState(false);
   const [panel, setPanel] = useState(null);
-  const [notifications, setNotifications] = useState(true);
   const [saved, setSaved] = useState(false);
   const [streak, setStreak] = useState(0);
 
@@ -237,10 +238,6 @@ export default function ProfileSettings() {
   };
 
   const open = (id) => {
-    if (id === "notifications") {
-      setNotifications((value) => !value);
-      return;
-    }
     setDraft(profile);
     setPanel(id);
   };
@@ -567,6 +564,31 @@ export default function ProfileSettings() {
           color: #258b6d;
           font-size: 10px;
           font-weight: 850;
+        }
+        .profile-language-switcher {
+          display: flex;
+          flex: 0 0 auto;
+          gap: 3px;
+          padding: 3px;
+          border: 1px solid #c5ead8;
+          border-radius: 11px;
+          background: #edf9f3;
+        }
+        .profile-language-option {
+          min-width: 43px;
+          padding: 6px 7px;
+          border: 0;
+          border-radius: 8px;
+          color: #5f8a7b;
+          background: transparent;
+          font-size: 10px;
+          font-weight: 850;
+          cursor: pointer;
+        }
+        .profile-language-option.active {
+          color: #fff;
+          background: #1a9a73;
+          box-shadow: 0 3px 7px rgba(26, 154, 115, 0.2);
         }
         .profile-chevron {
           color: #76aa97;
@@ -1022,19 +1044,20 @@ export default function ProfileSettings() {
               <div className="profile-menu">
                 {group.items.map((entry) => {
                   const Icon = entry.icon;
-                  const isNotifications = entry.id === "notifications";
+                  const isLanguage = entry.id === "language";
                   const description =
                     entry.id === "activity"
                       ? profile.activity
                       : entry.id === "units"
                       ? profile.units
                       : entry.description;
+                  const Row = isLanguage ? "div" : "button";
                   return (
-                    <button
+                    <Row
                       className="profile-menu-row"
-                      type="button"
+                      {...(!isLanguage ? { type: "button" } : {})}
                       key={entry.id}
-                      onClick={() => open(entry.id)}
+                      onClick={!isLanguage ? () => open(entry.id) : undefined}
                     >
                       <span className="profile-menu-icon">
                         <Icon size={16} />
@@ -1043,18 +1066,37 @@ export default function ProfileSettings() {
                         <strong>{entry.label}</strong>
                         <span>{description}</span>
                       </span>
-                      {isNotifications ? (
+                      {isLanguage ? (
                         <span
-                          className={`profile-toggle ${
-                            notifications ? "on" : ""
-                          }`}
-                          aria-label={
-                            notifications
-                              ? "Notifications on"
-                              : "Notifications off"
-                          }
+                          className="profile-language-switcher"
+                          aria-label="Select language"
                         >
-                          <span />
+                          <button
+                            type="button"
+                            className={`profile-language-option ${
+                              language === "en" ? "active" : ""
+                            }`}
+                            aria-pressed={language === "en"}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setLanguage("en");
+                            }}
+                          >
+                            English
+                          </button>
+                          <button
+                            type="button"
+                            className={`profile-language-option ${
+                              language === "ne" ? "active" : ""
+                            }`}
+                            aria-pressed={language === "ne"}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setLanguage("ne");
+                            }}
+                          >
+                            नेपाली
+                          </button>
                         </span>
                       ) : (
                         <>
@@ -1073,7 +1115,7 @@ export default function ProfileSettings() {
                           />
                         </>
                       )}
-                    </button>
+                    </Row>
                   );
                 })}
               </div>

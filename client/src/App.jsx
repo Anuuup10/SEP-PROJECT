@@ -15,6 +15,7 @@ import History from './pages/History';
 import Setting from './pages/Setting';
 import ProfileSetup from './pages/ProfileSetup';
 import MealPlanner from './pages/MealPlanner';
+import { LanguageProvider } from './i18n';
 
 function ResultRoute() {
   const location = useLocation();
@@ -71,11 +72,13 @@ function AppRoutes() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 
