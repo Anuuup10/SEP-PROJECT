@@ -1,7 +1,6 @@
 import { analyzeFoodImage } from '../services/geminiService.js';
 import { randomUUID } from 'node:crypto';
-import { calculateStreak, listMeals, saveMeal, saveScan } from '../services/mongoService.js';
-import UserProfile from '../models/UserProfile.js';
+import { calculateStreak, getProfile, listMeals, saveMeal, saveScan } from '../services/firestoreService.js';
 
 export const scanFood = async (req, res, next) => {
   try {
@@ -9,7 +8,7 @@ export const scanFood = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please upload an image' });
     }
 
-    const profile = await UserProfile.findOne({ userId: req.user.id }).select('conditions').lean();
+    const profile = await getProfile(req.user.id);
     const language = req.body?.language === 'ne' ? 'ne' : 'en';
     const result = await analyzeFoodImage(req.file.buffer, req.file.mimetype, Array.isArray(profile?.conditions) ? profile.conditions : [], language);
 

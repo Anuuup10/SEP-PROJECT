@@ -1,4 +1,4 @@
-import { getProgress } from '../services/mongoService.js';
+import { getProgress } from '../services/firestoreService.js';
 
 export const getNutritionProgress = async (req, res, next) => {
   try {

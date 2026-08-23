@@ -1,12 +1,8 @@
 import dotenv from 'dotenv';
-import path from 'node:path';
 dotenv.config();
-const atlasEnvPath = process.env.MONGODB_ENV_PATH || path.join(process.env.USERPROFILE || process.cwd(), 'Downloads', 'atlas-credentials.env');
-dotenv.config({ path: atlasEnvPath });
 
 export const config = {
   port: process.env.PORT || 5000,
-  mongoUri: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/nutrilens',
   jwtSecret: process.env.JWT_SECRET || 'default_jwt_secret_dev_key',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   geminiModel: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',

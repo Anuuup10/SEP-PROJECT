@@ -15,7 +15,6 @@ import mealImage from '../assets/images/HealthyFood-2.jpg';
 import khanaLensLogo from '../assets/images/KhanaLens.jpg';
 import { useAuth } from '../hooks/useAuth';
 import { useNutrition } from '../hooks/useNutrition';
-import { getTrackedMeals } from '../services/tracker';
 import { getProfileApi, getProgressApi, saveProfileApi } from '../services/api';
 import { FoodAvatar } from '../components/FoodAvatar';
 
@@ -89,19 +88,14 @@ export const Home = () => {
   const [nutritionProgress, setNutritionProgress] = useState(null);
   const [selectedProgressDate, setSelectedProgressDate] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const [trackedMeals, setTrackedMeals] = useState(() => getTrackedMeals(user?.id));
   const [goalOverride, setGoalOverride] = useState({});
   const [goalDraft, setGoalDraft] = useState({ calorieGoal: defaultSummary.calorieGoal, proteinGoal: defaultSummary.proteinGoal, carbsGoal: defaultSummary.carbsGoal, fatGoal: defaultSummary.fatGoal });
   const [goalEditorOpen, setGoalEditorOpen] = useState(false);
 
   const fetchDashboardData = () => {
     if (!user?.id) return;
-    let cachedProfile = null;
-    try { cachedProfile = JSON.parse(localStorage.getItem(`nutrilens_profile:${user.id}`) || 'null'); } catch { cachedProfile = null; }
-    if (cachedProfile) cachedProfile.completed = Boolean(cachedProfile.name && cachedProfile.age && cachedProfile.gender && cachedProfile.height && cachedProfile.currentWeight);
-    setProfile(cachedProfile);
+    setProfile(null);
     setProfileLoading(true);
-    setTrackedMeals(getTrackedMeals(user.id));
     getHistory().then(setHistory).catch(() => setHistory({ summary: { totals: {} }, data: [] }));
     getProgressApi('week').then((response) => {
       const nextProgress = response.data.data;
@@ -110,11 +104,11 @@ export const Home = () => {
     }).catch(() => setNutritionProgress(null));
     getProfileApi().then((response) => {
       const nextProfile = response.data.data;
-      const resolvedProfile = nextProfile || cachedProfile;
+      const resolvedProfile = nextProfile;
       setProfile(resolvedProfile);
       setGoalOverride({ calorieGoal: Number(resolvedProfile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(resolvedProfile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(resolvedProfile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(resolvedProfile?.fatGoal || defaultSummary.fatGoal) });
       setGoalDraft({ calorieGoal: Number(resolvedProfile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(resolvedProfile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(resolvedProfile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(resolvedProfile?.fatGoal || defaultSummary.fatGoal) });
-    }).catch(() => setProfile(cachedProfile)).finally(() => setProfileLoading(false));
+    }).catch(() => setProfile(null)).finally(() => setProfileLoading(false));
   };
 
   useEffect(() => {
@@ -123,7 +117,6 @@ export const Home = () => {
 
   useEffect(() => {
     const syncTrackedMeals = () => {
-      setTrackedMeals(getTrackedMeals(user?.id));
       getHistory().then(setHistory).catch(() => {});
       getProgressApi('week').then((response) => setNutritionProgress(response.data.data)).catch(() => {});
     };
@@ -140,7 +133,16 @@ export const Home = () => {
 
   const summary = useMemo(() => {
     const selectedTotals = selectedDay || nutritionProgress?.today || {};
-    const base = { ...defaultSummary, calories: Number(selectedTotals.calories || 0), protein: Number(selectedTotals.protein || 0), carbs: Number(selectedTotals.carbs || 0), fat: Number(selectedTotals.fat || 0), calorieGoal: Number(profile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(profile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(profile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(profile?.fatGoal || defaultSummary.fatGoal), ...goalOverride };
+    const mealTotals = (selectedTotals.meals || []).reduce((sum, meal) => ({
+      calories: sum.calories + Number(meal.calories || meal.totals?.calories || 0),
+      protein: sum.protein + Number(meal.protein || meal.totals?.protein || 0),
+      carbs: sum.carbs + Number(meal.carbs || meal.totals?.carbohydrates || meal.totals?.carbs || 0),
+      fat: sum.fat + Number(meal.fat || meal.totals?.fat || 0),
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+    const resolvedTotals = (selectedTotals.calories || selectedTotals.protein || selectedTotals.carbs || selectedTotals.fat)
+      ? selectedTotals
+      : { ...selectedTotals, ...mealTotals };
+    const base = { ...defaultSummary, calories: Number(resolvedTotals.calories || 0), protein: Number(resolvedTotals.protein || 0), carbs: Number(resolvedTotals.carbs || 0), fat: Number(resolvedTotals.fat || 0), calorieGoal: Number(profile?.calorieGoal || defaultSummary.calorieGoal), proteinGoal: Number(profile?.proteinGoal || defaultSummary.proteinGoal), carbsGoal: Number(profile?.carbsGoal || defaultSummary.carbsGoal), fatGoal: Number(profile?.fatGoal || defaultSummary.fatGoal), ...goalOverride };
     return {
       ...base,
       calories: Number(base.calories || 0),
@@ -150,7 +152,7 @@ export const Home = () => {
     };
   }, [nutritionProgress, selectedDay, goalOverride, profile?.calorieGoal, profile?.proteinGoal, profile?.carbsGoal, profile?.fatGoal]);
 
-  const trackedMealRows = trackedMeals.map((meal) => ({
+  const trackedMealRows = (history.data || []).map((meal) => ({
     _id: meal.id,
     foodName: meal.mealName,
     calories: meal.calories,
@@ -175,25 +177,13 @@ export const Home = () => {
     image: meal.image,
   }));
 
-  const selectedDayTrackedMealRows = trackedMealRows.filter((meal) => {
-    if (!selectedDay?.date || !meal.createdAt || meal.createdAt === 'Just now') return false;
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Kathmandu',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(new Date(meal.createdAt));
-    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return `${values.year}-${values.month}-${values.day}` === selectedDay.date;
-  });
-
   const meals = useMemo(() => {
     if (!selectedDay) return [];
-    const sourceMeals = selectedDayMealRows.length > 0 ? selectedDayMealRows : selectedDayTrackedMealRows;
+    const sourceMeals = selectedDayMealRows;
     return sourceMeals
       .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 5);
-  }, [selectedDay, selectedDayMealRows, selectedDayTrackedMealRows]);
+  }, [selectedDay, selectedDayMealRows]);
 
   const displayName = user?.name?.split(' ')[0] || 'there';
   const saveGoals = async () => {

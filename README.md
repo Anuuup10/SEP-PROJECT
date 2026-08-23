@@ -1,6 +1,6 @@
 # NutriLens & KhanaLens
 
-NutriLens is an AI-powered nutrition scanner and health tracker application built with React, Node.js, Express, MongoDB, and Google Gemini AI.
+NutriLens is an AI-powered nutrition scanner and health tracker application built with React, Node.js, Express, Firebase, and Google Gemini AI.
 
 ## Project Structure
 
@@ -21,7 +21,7 @@ sep_project/
 │
 ├── server/                     # Node + Express backend
 │   ├── controllers/            # Request logic
-│   ├── models/                 # MongoDB/Mongoose models
+│   ├── services/               # Firebase and application services
 │   ├── routes/                 # API routes
 │   ├── services/               # Gemini + nutrition logic
 │   ├── middleware/             # Auth/error middleware
@@ -44,7 +44,7 @@ sep_project/
 
 ### Prerequisites
 - Node.js (v18+)
-- MongoDB instance (local or MongoDB Atlas)
+- Firebase project with Firestore, Authentication, and Storage enabled
 - Gemini API Key
 
 ### Installation
@@ -60,7 +60,6 @@ sep_project/
    Create a `.env` file in the `server/` folder:
    ```env
    PORT=5000
-   MONGO_URI=mongodb://localhost:27017/nutrilens
    JWT_SECRET=your_jwt_secret_key
    GEMINI_API_KEY=your_google_gemini_api_key
    ```

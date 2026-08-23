@@ -105,16 +105,7 @@ export default function MealPlanner() {
     return list;
   }, []);
 
-  const cacheKey = useMemo(() => `nutrilens_saved_plan_7d:${user?.id || 'guest'}`, [user?.id]);
-
-  const [plan, setPlan] = useState(() => {
-    try {
-      const saved = localStorage.getItem(cacheKey);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [plan, setPlan] = useState(null);
 
   const [selectedDayIdx, setSelectedDayIdx] = useState(0); // 0 is ALWAYS Today
   const [expandedMeals, setExpandedMeals] = useState({});
@@ -149,7 +140,6 @@ export default function MealPlanner() {
           }
         }
       } catch (err) {
-        // Fallback to cached plan if available
       } finally {
         if (isMounted) setInitialLoading(false);
       }
@@ -159,10 +149,6 @@ export default function MealPlanner() {
       isMounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (plan) localStorage.setItem(cacheKey, JSON.stringify(plan));
-  }, [plan, cacheKey]);
 
   const generate = async () => {
     // Check 3-day cooldown client-side
@@ -637,7 +623,6 @@ export default function MealPlanner() {
     </div>
   );
 }
-
 
 
 

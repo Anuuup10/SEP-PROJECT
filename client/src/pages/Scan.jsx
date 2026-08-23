@@ -69,12 +69,7 @@ export const Scan = () => {
   };
 
   useEffect(() => {
-    let cachedProfile = null;
-    try {
-      cachedProfile = JSON.parse(localStorage.getItem(`nutrilens_profile:${localStorage.getItem('nutrilens_user') ? JSON.parse(localStorage.getItem('nutrilens_user')).id : ''}`) || 'null');
-    } catch {
-      cachedProfile = null;
-    }
+    const cachedProfile = null;
     const hasRequiredDetails = (profile) => Boolean(profile?.age && profile?.gender && profile?.height && profile?.currentWeight);
     if (hasRequiredDetails(cachedProfile)) setProfileReady(true);
     getProfileApi().then((response) => {

@@ -1,11 +1,8 @@
-import UserProfile from '../models/UserProfile.js';
-
-const shape = (profile) => profile ? { ...profile, avatar: profile.avatar === 'sushi' ? 'sushi' : 'taco', completed: Boolean(profile.name && profile.age && profile.gender && profile.height && profile.currentWeight), id: profile._id.toString(), _id: undefined } : null;
+import { getProfile as getFirestoreProfile, saveProfile as saveFirestoreProfile } from '../services/firestoreService.js';
 
 export const getProfile = async (req, res, next) => {
   try {
-    const profile = await UserProfile.findOne({ userId: req.user.id }).lean();
-    res.json({ success: true, data: shape(profile) });
+    res.json({ success: true, data: await getFirestoreProfile(req.user.id) });
   } catch (error) { next(error); }
 };
 
@@ -22,11 +19,7 @@ export const saveProfile = async (req, res, next) => {
       carbsGoal: Number(body.carbsGoal) || 250,
       fatGoal: Number(body.fatGoal) || 70
     };
-    const profile = await UserProfile.findOneAndUpdate(
-      { userId: req.user.id },
-      { $set: { ...body, ...goals, avatar, userId: req.user.id, name, email, completed } },
-      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-    ).lean();
-    res.json({ success: true, data: shape(profile) });
+    const profile = await saveFirestoreProfile(req.user.id, { ...body, ...goals, avatar, completed }, req.user);
+    res.json({ success: true, data: profile });
   } catch (error) { next(error); }
 };

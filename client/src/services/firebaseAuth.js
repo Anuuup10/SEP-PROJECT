@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup } from 'firebase/auth';
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
 const identityToolkitUrl = 'https://identitytoolkit.googleapis.com/v1/accounts';
@@ -37,9 +37,11 @@ export const firebaseSignInWithGoogle = async () => {
     throw new Error('Firebase web authentication is not configured');
   }
 
+  const auth = getFirebaseAuth();
+  await setPersistence(auth, inMemoryPersistence);
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  const result = await signInWithPopup(getFirebaseAuth(), provider);
+  const result = await signInWithPopup(auth, provider);
   const firebaseUser = result.user;
   return {
     token: await firebaseUser.getIdToken(),

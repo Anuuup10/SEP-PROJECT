@@ -1,6 +1,4 @@
-import MealPlan from '../models/MealPlan.js';
-import UserProfile from '../models/UserProfile.js';
-import { listMeals } from '../services/mongoService.js';
+import { getMealPlan as getFirestoreMealPlan, getProfile, listMeals, saveMealPlan } from '../services/firestoreService.js';
 import { generateMealPlan } from '../services/geminiService.js';
 
 const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // 3 Days (72 hours)
@@ -25,7 +23,7 @@ const calculateCooldown = (generatedAt) => {
 
 export const getMealPlan = async (req, res, next) => {
   try {
-    const plan = await MealPlan.findOne({ userId: req.user.id }).lean();
+    const plan = await getFirestoreMealPlan(req.user.id);
     if (!plan) {
       return res.json({
         success: true,
@@ -55,7 +53,7 @@ export const getMealPlan = async (req, res, next) => {
 export const createMealPlan = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const existingPlan = await MealPlan.findOne({ userId }).lean();
+    const existingPlan = await getFirestoreMealPlan(userId);
 
     if (existingPlan?.generatedAt) {
       const cooldown = calculateCooldown(existingPlan.generatedAt);
@@ -71,7 +69,7 @@ export const createMealPlan = async (req, res, next) => {
     }
 
     const [profile, savedMeals] = await Promise.all([
-      UserProfile.findOne({ userId }).lean(),
+      getProfile(userId),
       listMeals(userId)
     ]);
 
@@ -95,19 +93,7 @@ export const createMealPlan = async (req, res, next) => {
     });
 
     const now = new Date();
-    const savedPlan = await MealPlan.findOneAndUpdate(
-      { userId },
-      {
-        userId,
-        days: generated.days,
-        recommendation: generated.recommendation,
-        disclaimer: generated.disclaimer,
-        goals,
-        sourceMeals: [...new Set(mealTitles)],
-        generatedAt: now
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    ).lean();
+    const savedPlan = await saveMealPlan(userId, { days: generated.days, recommendation: generated.recommendation, disclaimer: generated.disclaimer, goals, sourceMeals: [...new Set(mealTitles)], generatedAt: now });
 
     const cooldown = calculateCooldown(now);
 

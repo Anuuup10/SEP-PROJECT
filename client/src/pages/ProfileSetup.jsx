@@ -118,7 +118,6 @@ export default function ProfileSetup() {
     try {
       const response = await saveProfileApi({ ...draft, email: user.email, completed: true });
       const profile = response.data.data || { ...draft, completed: true };
-      localStorage.setItem(`nutrilens_profile:${user.id}`, JSON.stringify(profile));
       navigate('/home', { replace: true });
     } catch (saveError) {
       setError(saveError.response?.data?.message || 'Could not save your profile. Please try again.');

@@ -1,11 +1,12 @@
 import axios from 'axios';
+import { getSessionToken } from './session';
 
 const API = axios.create({
   baseURL: '/api'
 });
 
 API.interceptors.request.use((req) => {
-  const token = localStorage.getItem('nutrilens_token');
+  const token = getSessionToken();
   if (token) {
     req.headers.Authorization = `Bearer ${token}`;
   }
@@ -27,4 +28,3 @@ export const getMealPlanApi = () => API.get('/meal-plan');
 export const generateMealPlanApi = () => API.post('/meal-plan');
 
 export default API;
-

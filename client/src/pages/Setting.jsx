@@ -167,13 +167,7 @@ export default function ProfileSettings() {
 
   useEffect(() => {
     if (!user?.id) return;
-    const storageKey = `nutrilens_profile:${user.id}`;
-    let savedProfile = {};
-    try {
-      savedProfile = JSON.parse(localStorage.getItem(storageKey) || "{}");
-    } catch {
-      savedProfile = {};
-    }
+    const savedProfile = {};
     const localProfile = {
       ...defaults,
       ...savedProfile,
@@ -210,10 +204,6 @@ export default function ProfileSettings() {
     };
     setProfile(normalizedProfile);
     setDraft(normalizedProfile);
-    localStorage.setItem(
-      `nutrilens_profile:${user.id}`,
-      JSON.stringify(normalizedProfile)
-    );
     saveProfileApi(normalizedProfile).catch(() => {});
   };
 
@@ -1074,7 +1064,7 @@ export default function ProfileSettings() {
                       {isLanguage ? (
                         <span className="profile-language-picker" aria-label="Select language" onClick={(event) => event.stopPropagation()}>
                           <button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")} aria-pressed={language === "en"}>English</button>
-                          <button type="button" className={language === "ne" ? "active" : ""} onClick={() => setLanguage("ne")} aria-pressed={language === "ne"}>नेपाली</button>
+                          {/* Nepali is temporarily disabled while debugging the nutrition summary. */}
                         </span>
                       ) : (
                         <>

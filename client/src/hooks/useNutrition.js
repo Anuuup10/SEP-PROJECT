@@ -13,7 +13,8 @@ export const useNutrition = () => {
     try {
       const formData = new FormData();
       formData.append('image', imageFile);
-      formData.append('language', language);
+    // Nepali scanning is temporarily disabled for summary debugging.
+    formData.append('language', 'en');
       const res = await scanFoodApi(formData);
       setLoading(false);
       return res.data;

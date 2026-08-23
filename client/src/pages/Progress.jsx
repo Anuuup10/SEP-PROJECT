@@ -24,7 +24,7 @@ function Progress() {
       .catch(() => setProgressError("Unable to load your nutrition progress."));
   }, []);
 
-  const today = progress?.today || {
+  const serverToday = progress?.today || {
     calories: 0,
     protein: 0,
     carbs: 0,
@@ -32,6 +32,17 @@ function Progress() {
     fiber: 0,
     meals: [],
   };
+  const calculatedToday = (serverToday.meals || []).reduce((sum, meal) => ({
+    calories: sum.calories + Number(meal.calories || meal.totals?.calories || 0),
+    protein: sum.protein + Number(meal.protein || meal.totals?.protein || 0),
+    carbs: sum.carbs + Number(meal.carbs || meal.totals?.carbohydrates || meal.totals?.carbs || 0),
+    fat: sum.fat + Number(meal.fat || meal.totals?.fat || 0),
+    fiber: sum.fiber + Number(meal.fiber || meal.totals?.fiber || 0),
+    meals: serverToday.meals,
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, meals: serverToday.meals });
+  const today = serverToday.calories || serverToday.protein || serverToday.carbs || serverToday.fat || serverToday.fiber
+    ? serverToday
+    : calculatedToday;
   const goals = progress?.goals || {
     calories: 2000,
     protein: 120,

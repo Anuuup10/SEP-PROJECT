@@ -1,7 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const LanguageContext = createContext(null);
-const STORAGE_KEY = 'khanalens_language';
+
+// TEMPORARILY DISABLED FOR SUMMARY DEBUGGING.
+// Keep the translation table below so Nepali can be restored after testing.
+const NEPALI_LANGUAGE_ENABLED = false;
 
 // Covers the app's reusable UI copy. Food names themselves are requested from
 // the scanner in Nepali, rather than relying on a fragile client-side glossary.
@@ -45,6 +48,10 @@ const translateText = (value, language) => {
 };
 
 function translateDocument(language) {
+  if (!NEPALI_LANGUAGE_ENABLED) {
+    document.documentElement.lang = 'en';
+    return;
+  }
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const nodes = [];
   while (walker.nextNode()) nodes.push(walker.currentNode);
@@ -58,11 +65,10 @@ function translateDocument(language) {
 }
 
 export function LanguageProvider({ children }) {
-  const [language, setLanguageState] = useState(() => localStorage.getItem(STORAGE_KEY) === 'ne' ? 'ne' : 'en');
-  const setLanguage = useCallback((nextLanguage) => setLanguageState(nextLanguage === 'ne' ? 'ne' : 'en'), []);
+  const [language, setLanguageState] = useState('en');
+  const setLanguage = useCallback((nextLanguage) => setLanguageState(NEPALI_LANGUAGE_ENABLED && nextLanguage === 'ne' ? 'ne' : 'en'), []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, language);
     translateDocument(language);
     const observer = new MutationObserver(() => translateDocument(language));
     observer.observe(document.body, { childList: true, subtree: true });
