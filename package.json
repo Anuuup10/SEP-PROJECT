@@ -1,6 +1,7 @@
 {
   "name": "nutrilens-monorepo",
   "version": "1.0.0",
+  "type": "module",
   "description": "NutriLens - AI-Powered Nutrition Scanner and Health Tracker",
   "main": "server/server.js",
   "scripts": {
