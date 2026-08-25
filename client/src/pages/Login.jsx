@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { firebaseSignIn, firebaseSignInWithGoogle, firebaseSignUp } from "../services/firebaseAuth";
@@ -8,9 +8,6 @@ import { firebaseSignIn, firebaseSignInWithGoogle, firebaseSignUp } from "../ser
 // buttons show a friendly "not configured yet" message instead of
 // silently failing.
 // ------------------------------------------------------------------
-const APPLE_CLIENT_ID = "YOUR_APPLE_SERVICES_ID";
-const APPLE_REDIRECT_URI = "https://yourapp.com/auth/apple/callback";
-
 function EyeIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,23 +26,6 @@ function EyeOffIcon() {
   );
 }
 
-// Loads an external script once and resolves when it's ready.
-function loadScript(src, id) {
-  return new Promise((resolve, reject) => {
-    if (document.getElementById(id)) {
-      resolve();
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = src;
-    script.id = id;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load " + src));
-    document.head.appendChild(script);
-  });
-}
-
 export default function Login({ initialSignup = false }) {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -59,18 +39,6 @@ export default function Login({ initialSignup = false }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [errors, setErrors] = useState({});
-
-  const appleReady = useRef(false);
-
-  // Preload both SDKs in the background so the buttons respond instantly.
-  useEffect(() => {
-    loadScript(
-      "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js",
-      "apple-id-script"
-    )
-      .then(() => (appleReady.current = true))
-      .catch(() => {});
-  }, []);
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -135,48 +103,6 @@ export default function Login({ initialSignup = false }) {
     } finally {
       setLoading(false);
     }
-  }
-
-  // --- Apple Sign-In ---
-  // Setup: register a Services ID at https://developer.apple.com/account/resources/identifiers
-  // and paste it into APPLE_CLIENT_ID / APPLE_REDIRECT_URI above.
-  function handleApple() {
-    if (APPLE_CLIENT_ID === "YOUR_APPLE_SERVICES_ID") {
-      setErrors({ form: "Apple sign-in is not configured for this deployment." });
-      return;
-    }
-    if (!window.AppleID) {
-      setErrors({ form: "Apple sign-in could not be loaded. Please try again." });
-      return;
-    }
-    window.AppleID.auth.init({
-      clientId: APPLE_CLIENT_ID,
-      scope: "name email",
-      redirectURI: APPLE_REDIRECT_URI,
-      usePopup: true,
-    });
-    window.AppleID.auth
-      .signIn()
-      .then((res) => {
-        // res.authorization.id_token is a signed JWT. Send it to your
-        // backend (see server/auth-apple.js) to verify it and create a session.
-        fetch("/api/auth/apple", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            idToken: res.authorization.id_token,
-            user: res.user || null,
-          }),
-        })
-          .then((r) => r.json())
-          .then((response) => {
-            if (!response.ok) throw new Error("Apple sign-in is not available on this server.");
-            return response.json();
-          })
-          .then(() => setErrors({ form: "Apple sign-in completed, but this provider is not connected to a session yet." }))
-          .catch((error) => setErrors({ form: error.message || "Apple sign-in failed." }));
-      })
-      .catch((error) => setErrors({ form: error.message || "Apple sign-in failed." }));
   }
 
   function goToSignup() {
@@ -301,13 +227,6 @@ export default function Login({ initialSignup = false }) {
                   <span style={styles.google}>G</span>
                   Google
                 </button>
-                <button type="button" onClick={handleApple} style={styles.socialButton} title="Apple sign-in is not configured">
-                  <svg viewBox="0 0 24 24" style={styles.apple} fill="currentColor">
-                    <path d="M16.7 12.7c0-2.7 2.2-4 2.3-4.1-1.3-1.9-3.2-2.1-3.9-2.2-1.7-.2-3.2 1-4.1 1-.8 0-2.1-1-3.5-1-1.8 0-3.5 1-4.4 2.6-1.9 3.3-.5 8.1 1.3 10.8.9 1.3 2 2.8 3.4 2.7 1.4-.1 1.9-.9 3.5-.9s2.1.9 3.5.9c1.5 0 2.4-1.3 3.3-2.7.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.6-1-2.7-3.4z" />
-                    <path d="M13.9 4.9c.7-.9 1.2-2.1 1-3.3-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.5z" />
-                  </svg>
-                  Apple
-                </button>
               </div>
 
               <p style={styles.signupText}>
@@ -408,6 +327,19 @@ export default function Login({ initialSignup = false }) {
                   )}
                 </button>
               </form>
+
+              <div style={styles.divider}>
+                <div style={styles.line}></div>
+                <p style={styles.or}>or sign up with</p>
+                <div style={styles.line}></div>
+              </div>
+
+              <div style={styles.socialButtons}>
+                <button type="button" onClick={handleGoogle} style={styles.socialButton}>
+                  <span style={styles.google}>G</span>
+                  Google
+                </button>
+              </div>
 
               <p style={styles.signupText}>
                 Already have an account?
