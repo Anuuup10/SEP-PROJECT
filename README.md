@@ -57,12 +57,26 @@ sep_project/
    ```
 
 2. **Environment Configuration**
+   Create `client/.env` with the Firebase web-app values and the deployed API origin:
+   ```env
+   VITE_API_URL=http://localhost:5000/api
+   VITE_FIREBASE_API_KEY=your_firebase_web_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your-firebase-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+   VITE_FIREBASE_APP_ID=your_firebase_app_id
+   ```
+
    Create a `.env` file in the `server/` folder:
    ```env
    PORT=5000
    JWT_SECRET=your_jwt_secret_key
    GEMINI_API_KEY=your_google_gemini_api_key
+   CLIENT_ORIGIN=https://your-frontend-domain.com
    ```
+
+   This repository is configured to deploy both the Vite frontend and Express API on Vercel. Use `VITE_API_URL=/api` so the frontend calls the same Vercel domain.
 
 3. **Run Development Server**
    From the root folder:

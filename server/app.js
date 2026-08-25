@@ -6,10 +6,11 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import mealPlanRoutes from './routes/mealPlanRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
+import { config } from './config/env.js';
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: config.clientOrigin === '*' ? true : config.clientOrigin }));
 app.use(express.json());
 
 // API Routes

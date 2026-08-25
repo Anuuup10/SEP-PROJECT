@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getSessionToken } from './session';
 
 const API = axios.create({
-  baseURL: '/api'
+  baseURL: import.meta.env.VITE_API_URL || '/api'
 });
 
 API.interceptors.request.use((req) => {
@@ -12,6 +12,16 @@ API.interceptors.request.use((req) => {
   }
   return req;
 });
+
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('nutrilens:unauthorized'));
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const loginApi = (credentials) => API.post('/auth/login', credentials);
 export const registerApi = (userData) => API.post('/auth/register', userData);

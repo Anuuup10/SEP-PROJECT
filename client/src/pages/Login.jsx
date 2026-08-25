@@ -142,9 +142,11 @@ export default function Login({ initialSignup = false }) {
   // and paste it into APPLE_CLIENT_ID / APPLE_REDIRECT_URI above.
   function handleApple() {
     if (APPLE_CLIENT_ID === "YOUR_APPLE_SERVICES_ID") {
+      setErrors({ form: "Apple sign-in is not configured for this deployment." });
       return;
     }
     if (!window.AppleID) {
+      setErrors({ form: "Apple sign-in could not be loaded. Please try again." });
       return;
     }
     window.AppleID.auth.init({
@@ -167,10 +169,14 @@ export default function Login({ initialSignup = false }) {
           }),
         })
           .then((r) => r.json())
-          .then(() => alert("Signed in with Apple!"))
-          .catch(() => {});
+          .then((response) => {
+            if (!response.ok) throw new Error("Apple sign-in is not available on this server.");
+            return response.json();
+          })
+          .then(() => setErrors({ form: "Apple sign-in completed, but this provider is not connected to a session yet." }))
+          .catch((error) => setErrors({ form: error.message || "Apple sign-in failed." }));
       })
-      .catch(() => {});
+      .catch((error) => setErrors({ form: error.message || "Apple sign-in failed." }));
   }
 
   function goToSignup() {
@@ -295,7 +301,7 @@ export default function Login({ initialSignup = false }) {
                   <span style={styles.google}>G</span>
                   Google
                 </button>
-                <button type="button" onClick={handleApple} style={styles.socialButton}>
+                <button type="button" onClick={handleApple} style={styles.socialButton} title="Apple sign-in is not configured">
                   <svg viewBox="0 0 24 24" style={styles.apple} fill="currentColor">
                     <path d="M16.7 12.7c0-2.7 2.2-4 2.3-4.1-1.3-1.9-3.2-2.1-3.9-2.2-1.7-.2-3.2 1-4.1 1-.8 0-2.1-1-3.5-1-1.8 0-3.5 1-4.4 2.6-1.9 3.3-.5 8.1 1.3 10.8.9 1.3 2 2.8 3.4 2.7 1.4-.1 1.9-.9 3.5-.9s2.1.9 3.5.9c1.5 0 2.4-1.3 3.3-2.7.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.6-1-2.7-3.4z" />
                     <path d="M13.9 4.9c.7-.9 1.2-2.1 1-3.3-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.5z" />

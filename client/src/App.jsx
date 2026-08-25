@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { MainLayout } from './layouts/MainLayout';
@@ -16,6 +16,14 @@ import History from './pages/History';
 import Setting from './pages/Setting';
 import ProfileSetup from './pages/ProfileSetup';
 import MealPlanner from './pages/MealPlanner';
+import { useAuth } from './hooks/useAuth';
+
+function ProtectedRoute() {
+  const { user, token } = useAuth();
+  const location = useLocation();
+  if (!user || !token) return <Navigate to="/login" replace state={{ from: location }} />;
+  return <Outlet />;
+}
 
 function ResultRoute() {
   const location = useLocation();
@@ -50,20 +58,22 @@ function AppRoutes() {
         <Route path="/onboarding" element={<SplashPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Login initialSignup />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/scan" element={<Scan />} />
-        <Route path="/scan/analyzing" element={<Scan />} />
-        <Route path="/scan/result" element={<ResultRoute />} />
-        <Route path="/food/:id" element={<ItemDetailsRoute />} />
-        <Route path="/item-details" element={<ItemDetailsRoute />} />
-        <Route path="/goals" element={<Goals />} />
-        <Route path="/progress" element={<Progress />} />
-        <Route path="/progress/goals" element={<Goals />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
-        <Route path="/profile" element={<Setting />} />
-        <Route path="/profile/setup" element={<ProfileSetup />} />
-        <Route path="/meal-plan" element={<MealPlanner />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/scan" element={<Scan />} />
+          <Route path="/scan/analyzing" element={<Scan />} />
+          <Route path="/scan/result" element={<ResultRoute />} />
+          <Route path="/food/:id" element={<ItemDetailsRoute />} />
+          <Route path="/item-details" element={<ItemDetailsRoute />} />
+          <Route path="/goals" element={<Goals />} />
+          <Route path="/progress" element={<Progress />} />
+          <Route path="/progress/goals" element={<Goals />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+          <Route path="/profile" element={<Setting />} />
+          <Route path="/profile/setup" element={<ProfileSetup />} />
+          <Route path="/meal-plan" element={<MealPlanner />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
