@@ -56,17 +56,26 @@ export const Scan = () => {
       streamRef.current = stream;
       setCameraActive(true);
       setCameraMessage('');
-      window.setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
-        }
-      }, 0);
     } catch {
       setCameraActive(false);
       setCameraMessage('Camera permission was blocked. Allow camera access in Chrome settings.');
     }
   };
+
+  useEffect(() => {
+    if (!cameraActive || !videoRef.current || !streamRef.current) return undefined;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    const startPlayback = () => video.play().catch(() => {});
+    video.srcObject = stream;
+    if (video.readyState >= 1) startPlayback();
+    else video.onloadedmetadata = startPlayback;
+
+    return () => {
+      video.onloadedmetadata = null;
+      if (video.srcObject === stream) video.srcObject = null;
+    };
+  }, [cameraActive]);
 
   useEffect(() => {
     const cachedProfile = null;
