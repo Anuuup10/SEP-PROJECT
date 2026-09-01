@@ -241,4 +241,3 @@ Additional documentation is available in the `docs/` directory:
 ## License
 
 This project is currently intended for educational and project-development purposes.
-```
